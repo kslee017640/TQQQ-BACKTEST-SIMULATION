@@ -11,7 +11,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <style>
-        /* 웹페이지 디자인 색칠 공부 */
         :root {
             --primary-color: #4CAF50; 
             --bg-color: #f4f7f6;      
@@ -30,11 +29,9 @@
         .input-group label { font-size: 14px; margin-bottom: 5px; color: var(--text-sub); } 
         select, input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; }
         
-        /* 메인 실행 버튼 */
         .main-btn { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
         .main-btn:hover { background-color: #45a049; } 
         
-        /* 간편 날짜 버튼들 */
         .quick-btn-group { display: flex; gap: 5px; margin-top: 5px; }
         .quick-btn { flex: 1; padding: 8px 0; background-color: #e0e0e0; color: #333; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.2s; }
         .quick-btn:hover { background-color: #d0d0d0; }
@@ -43,7 +40,9 @@
         .result-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; } 
         .result-item:last-child { border-bottom: none; } 
         .result-value { font-weight: bold; color: var(--primary-color); } 
-        #chartArea { width: 100%; height: 500px; margin-top: 20px; }
+        
+        /* 💡 차트 영역을 모바일에서 더 크게 볼 수 있게 높이를 조절했어요 */
+        #chartArea { width: 100%; height: 600px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -89,7 +88,7 @@
 
         <div class="input-row" style="margin-bottom: 20px;">
             <div class="input-group">
-                <label>빠른 기간 선택 (종료 날짜 기준)</label>
+                <label>빠른 기간 선택</label>
                 <div class="quick-btn-group">
                     <button type="button" class="quick-btn" onclick="setQuickDate(1)">1년</button>
                     <button type="button" class="quick-btn" onclick="setQuickDate(2)">2년</button>
@@ -109,17 +108,19 @@
         <div class="result-item"><span>최종 평가 금액</span><span id="resValue" class="result-value">$0.00</span></div>
         <div class="result-item"><span>보유 주식 수</span><span id="resShares" class="result-value">0 주</span></div>
         <div class="result-item"><span>수익률</span><span id="resYield" class="result-value" style="color: #FF5722;">0.00%</span></div>
+        
+        <p style="font-size: 11px; color: #888; margin-top: 15px;">💡 한 손가락으로 이동, 두 손가락으로 확대/축소가 가능합니다.</p>
         <div id="chartArea"></div>
     </div>
 </div>
 
 <script>
-// 🚨 [안전장치 1] 브라우저에서 '침묵의 에러'가 발생하면 화면에 바로 팝업창을 띄워줍니다!
+// 🚨 오류 발생 시 알려주는 안전장치
 window.onerror = function(msg, url, line) {
-    alert("코드 실행 중 시스템 오류가 발생했습니다!\n\n오류 내용: " + msg + "\n오류 줄 번호: " + line);
+    alert("코드 실행 중 오류 발생!\n내용: " + msg + "\n줄: " + line);
 };
 
-// 사용자가 설정한 구글 드라이브 주소 목록
+// 데이터 주소 (사용자님이 제공해주신 최신 주소예요)
 const csvUrls = {
     'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?output=csv', 
     'SOXL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfgwCHgJ6jBPcpe_oE0e1cifk-psBZtAtGW6r4fxyEDm7wDtJ1nFhMrN2TjC9nb7bfjIYOFEkoeSE-/pub?output=csv',
@@ -128,7 +129,6 @@ const csvUrls = {
     'BTC': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYLvNYyPsN6KlvY-HBdm5NE4sRDoK_OW7qyxvYWfAbPbk35O2JS2eHIETTXoMQolWxNUmhmKSK_uej/pub?output=csv'
 };
 
-// 처음 로딩될 때 기본 날짜를 맞춰주는 요정
 function updateDefaultDates() {
     const ticker = document.getElementById('ticker').value;
     const today = new Date().toISOString().split('T')[0]; 
@@ -138,44 +138,32 @@ function updateDefaultDates() {
     document.getElementById('end_date').value = today;
 }
 
-// 🚨 [안전장치 2] 화면(버튼 등)이 모두 완벽하게 다 그려진 후에 날짜 요정이를 부릅니다!
 window.onload = function() {
     updateDefaultDates();
 };
 
-// 간편하게 과거 날짜를 맞춰주는 계산기 요정
 function setQuickDate(years) {
     let endDateInput = document.getElementById('end_date');
-    // 만약 종료 날짜가 비어있다면, 오늘 날짜로 채워줍니다.
-    if (!endDateInput.value) {
-        endDateInput.value = new Date().toISOString().split('T')[0];
-    }
+    if (!endDateInput.value) endDateInput.value = new Date().toISOString().split('T')[0];
     
-    let endStr = endDateInput.value;
     if (years === 'all') {
         const ticker = document.getElementById('ticker').value;
-        const startYear = (ticker === 'BTC') ? 2016 : 2011;
-        document.getElementById('start_date').value = `${startYear}-01-01`;
+        document.getElementById('start_date').value = (ticker === 'BTC' ? "2016" : "2011") + "-01-01";
         return;
     }
     
-    let end = new Date(endStr);
-    let startYear = end.getFullYear() - years; 
-    let startMonth = String(end.getMonth() + 1).padStart(2, '0'); 
-    let startDay = String(end.getDate()).padStart(2, '0'); 
-    
-    document.getElementById('start_date').value = `${startYear}-${startMonth}-${startDay}`;
+    let end = new Date(endDateInput.value);
+    end.setFullYear(end.getFullYear() - years);
+    document.getElementById('start_date').value = end.toISOString().split('T')[0];
 }
 
-// 🚨 [안전장치 3] 가장 튼튼하고 똑똑한 데이터 로봇 (어떤 형태의 구글 시트라도 다 읽어냅니다)
 function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker];
-    
     return new Promise((resolve, reject) => {
         Papa.parse(url, {
-            download: true,       // 엑셀 파일을 가져와!
-            header: true,         // 첫 줄은 제목이야!
-            skipEmptyLines: true, // 빈 줄은 무시해!
+            download: true,
+            header: true,
+            skipEmptyLines: true,
             complete: function(results) {
                 try {
                     let parsedData = []; 
@@ -183,45 +171,33 @@ function fetchAndParseData(ticker, startDate, endDate) {
                     let end = new Date(endDate);     
 
                     results.data.forEach(row => {
-                        // GOOGLEFINANCE 함수는 제목이 영어나 한글로 맘대로 바뀔 수 있어요. 
-                        // 그래서 제목이 뭐든 '첫 번째 칸은 날짜, 다섯 번째 칸은 종가'라는 무적의 규칙(Object.values)을 추가했어요!
                         let rowValues = Object.values(row);
-                        
                         let rawDate = row['날짜'] || row['Date'] || row['date'] || rowValues[0];
                         if (!rawDate) return; 
                         
-                        // 16:00:00 같은 시간을 잘라내고, 띄어쓰기를 없앱니다.
                         let cleanDateStr = String(rawDate).split(' ')[0].replace(/\s+/g, ''); 
                         let rowDate = new Date(cleanDateStr);
 
-                        // 달력에서 고른 기간에 있는 것만 담아요
                         if (rowDate >= start && rowDate <= end) {
                             let open = parseFloat(String(row['시가'] || row['Open'] || rowValues[1] || 0).replace(/,/g, ''));
                             let high = parseFloat(String(row['고가'] || row['High'] || rowValues[2] || 0).replace(/,/g, ''));
                             let low = parseFloat(String(row['저가'] || row['Low'] || rowValues[3] || 0).replace(/,/g, ''));
                             let close = parseFloat(String(row['종가'] || row['Close'] || rowValues[4] || 0).replace(/,/g, ''));
 
-                            // 종가가 정상적인 숫자인 경우에만 바구니에 담아요
                             if (!isNaN(close) && close > 0) {
                                 parsedData.push({ date: cleanDateStr, open: open, high: high, low: low, close: close });
                             }
                         }
                     });
-                    
-                    parsedData.sort((a, b) => new Date(a.date) - new Date(b.date)); // 날짜순 정렬
+                    parsedData.sort((a, b) => new Date(a.date) - new Date(b.date));
                     resolve(parsedData); 
-                } catch (err) {
-                    reject("데이터를 분석하는 중 문제가 생겼습니다: " + err.message);
-                }
+                } catch (err) { reject("데이터 분석 오류: " + err.message); }
             },
-            error: function(err) {
-                reject("데이터를 다운로드할 수 없습니다. 구글 시트 공유 설정을 확인해주세요.");
-            }
+            error: function(err) { reject("다운로드 실패!"); }
         });
     });
 }
 
-// 지수이동평균(EMA) 계산
 function calculateEMA(prices, n) {
     let k = 2 / (n + 1); 
     let emaArray = [prices[0]]; 
@@ -231,7 +207,6 @@ function calculateEMA(prices, n) {
     return emaArray;
 }
 
-// 표준편차 계산
 function calculateStdDev(prices, currentIndex, n) {
     if (currentIndex < n - 1) return 0; 
     let slice = prices.slice(currentIndex - n + 1, currentIndex + 1);
@@ -240,35 +215,26 @@ function calculateStdDev(prices, currentIndex, n) {
     return Math.sqrt(variance);
 }
 
-// 🚨 [안전장치 4] 백테스트 전체를 튼튼한 방패(try-catch)로 감싸서, 에러가 나면 무조건 경고창을 띄웁니다!
 async function runBacktest() {
     const btn = document.querySelector('.main-btn');
-    
     try {
-        btn.innerText = "데이터 불러오는 중...";
-        
+        btn.innerText = "데이터 로딩 중...";
         const ticker = document.getElementById('ticker').value; 
         const N = parseInt(document.getElementById('n_days').value); 
         const SIGMA = parseFloat(document.getElementById('sigma').value); 
         const startDate = document.getElementById('start_date').value; 
         const endDate = document.getElementById('end_date').value; 
 
-        // 인터넷에서 데이터 가져오기
         const rawData = await fetchAndParseData(ticker, startDate, endDate);
-        
-        if (rawData.length === 0) { 
-            alert("선택하신 기간에 해당하는 데이터가 없습니다! 시작 날짜와 종료 날짜를 확인해주세요.");
-            btn.innerText = "백테스트 실행하기"; 
-            return; 
-        }
+        if (rawData.length === 0) { alert("데이터가 없습니다!"); btn.innerText = "백테스트 실행하기"; return; }
 
-        btn.innerText = "투자 시뮬레이션 중...";
-
+        btn.innerText = "시뮬레이션 중...";
         const closePrices = rawData.map(d => d.close); 
         const emaValues = calculateEMA(closePrices, N); 
 
         let totalInvested = 0, cash = 0, shares = 0;
-        let buyDates = [], buyPrices = [], sellDates = [], sellPrices = [];
+        let buyDates = [], buyPrices = [], buyTexts = [];
+        let sellDates = [], sellPrices = [], sellTexts = [];
         let upper1Data = [], lower1Data = [], upper2Data = [], lower2Data = [];
 
         for (let i = 0; i < rawData.length; i++) {
@@ -290,7 +256,6 @@ async function runBacktest() {
             if(i < N) continue;
 
             let buyShares = 0, sellShares = 0; 
-            
             if (currentPrice < currentEMA - (2 * SIGMA * currentStdDev)) buyShares = 3; 
             else if (currentPrice < currentEMA - (1 * SIGMA * currentStdDev)) buyShares = 2; 
             else if (currentPrice < currentEMA) buyShares = 1; 
@@ -299,54 +264,87 @@ async function runBacktest() {
 
             if (buyShares > 0) {
                 let cost = buyShares * currentPrice; 
-                if (cash >= cost) { cash -= cost; } 
+                if (cash >= cost) cash -= cost; 
                 else { totalInvested += (cost - cash); cash = 0; } 
                 shares += buyShares; 
                 buyDates.push(currentDate); buyPrices.push(currentPrice);
+                buyTexts.push(`매수: ${buyShares}주`);
             }
-            
             if (sellShares > 0 && shares > 0) {
                 let actualSell = Math.min(shares, sellShares);
                 shares -= actualSell; cash += actualSell * currentPrice; 
                 sellDates.push(currentDate); sellPrices.push(currentPrice);
+                sellTexts.push(`매도: ${actualSell}주`);
             }
         }
 
-        let finalPrice = closePrices[closePrices.length - 1]; 
-        let finalValue = (shares * finalPrice) + cash; 
+        let finalValue = (shares * closePrices[closePrices.length-1]) + cash; 
         let yieldPercent = totalInvested > 0 ? ((finalValue - totalInvested) / totalInvested) * 100 : 0; 
 
         document.getElementById('resInvested').innerText = "$" + totalInvested.toFixed(2);
         document.getElementById('resValue').innerText = "$" + finalValue.toFixed(2);
         document.getElementById('resShares').innerText = shares + " 주";
-        
         let yieldEl = document.getElementById('resYield');
         yieldEl.innerText = yieldPercent.toFixed(2) + "%";
         yieldEl.style.color = yieldPercent >= 0 ? "#FF5722" : "#2196F3";
-        
         document.getElementById('resultArea').style.display = 'block';
 
+        // --- 📊 차트 성능 대수술 부분 ---
         const dates = rawData.map(d => d.date); 
-        const traceCandle = { x: dates, close: closePrices, high: rawData.map(d=>d.high), low: rawData.map(d=>d.low), open: rawData.map(d=>d.open), type: 'candlestick', name: ticker, increasing: {line: {color: '#EF5350'}}, decreasing: {line: {color: '#26A69A'}} };
-        const traceEMA = { x: dates, y: emaValues, type: 'scatter', mode: 'lines', name: 'EMA', line: {color: 'orange'} };
-        const traceUp1 = { x: dates, y: upper1Data, type: 'scatter', mode: 'lines', name: '+1σ', line: {color: 'gray', dash: 'dot', width: 1} };
-        const traceDn1 = { x: dates, y: lower1Data, type: 'scatter', mode: 'lines', name: '-1σ', line: {color: 'gray', dash: 'dot', width: 1} };
-        const traceUp2 = { x: dates, y: upper2Data, type: 'scatter', mode: 'lines', name: '+2σ', line: {color: 'lightgray', dash: 'dash', width: 1} };
-        const traceDn2 = { x: dates, y: lower2Data, type: 'scatter', mode: 'lines', name: '-2σ', line: {color: 'lightgray', dash: 'dash', width: 1} };
-        const traceBuy = { x: buyDates, y: buyPrices, type: 'scatter', mode: 'markers', name: '매수', marker: {color: '#E91E63', size: 8, symbol: 'triangle-up'} };
-        const traceSell = { x: sellDates, y: sellPrices, type: 'scatter', mode: 'markers', name: '매도', marker: {color: '#2196F3', size: 8, symbol: 'triangle-down'} };
+        
+        // 1. 캔들차트 (색상 명확화 및 두께 최적화)
+        const traceCandle = { 
+            x: dates, close: closePrices, high: rawData.map(d=>d.high), low: rawData.map(d=>d.low), open: rawData.map(d=>d.open), 
+            type: 'candlestick', name: '일봉',
+            increasing: {line: {color: '#EF5350', width: 1}, fillcolor: '#EF5350'}, 
+            decreasing: {line: {color: '#26A69A', width: 1}, fillcolor: '#26A69A'}
+        };
+        
+        // 2. EMA 및 볼린저 밴드
+        const traceEMA = { x: dates, y: emaValues, type: 'scatter', mode: 'lines', name: 'EMA', line: {color: 'orange', width: 1.5} };
+        const bBands = [
+            {y: upper2Data, name: '+2σ', color: 'rgba(200,200,200,0.3)'},
+            {y: lower2Data, name: '-2σ', color: 'rgba(200,200,200,0.3)'}
+        ].map(b => ({ x: dates, y: b.y, type: 'scatter', mode: 'lines', name: b.name, line: {color: b.color, width: 1, dash: 'dot'} }));
 
-        const layout = { title: `${ticker} 백테스트 결과`, xaxis: { rangeslider: { visible: false } }, yaxis: { title: '가격 ($)' }, margin: { l: 40, r: 20, t: 40, b: 30 }, showlegend: false };
+        // 3. 매수/매도 마커 (눈에 확 띄게 크기 키움)
+        const traceBuy = { 
+            x: buyDates, y: buyPrices, type: 'scatter', mode: 'markers', name: '매수점',
+            text: buyTexts, hoverinfo: 'text+x+y',
+            marker: {color: '#D81B60', size: 12, symbol: 'triangle-up', line: {color: 'white', width: 1}} 
+        };
+        const traceSell = { 
+            x: sellDates, y: sellPrices, type: 'scatter', mode: 'markers', name: '매도점',
+            text: sellTexts, hoverinfo: 'text+x+y',
+            marker: {color: '#1E88E5', size: 12, symbol: 'triangle-down', line: {color: 'white', width: 1}} 
+        };
+
+        const layout = { 
+            title: `${ticker} 분석 차트`,
+            dragmode: 'pan', // 💡 모바일에서 손가락 하나로 차트를 밀 수 있게 '이동' 모드 설정
+            xaxis: { 
+                autorange: true,
+                type: 'date',
+                tickformat: "'%y.%-m", // 💡 요청하신 '25.5 형태의 날짜 표현
+                rangeslider: { visible: false } // 캔들차트 아래 슬라이더는 복잡해서 뺌
+            },
+            yaxis: { autorange: true, fixedrange: false },
+            margin: { l: 40, r: 10, t: 50, b: 50 },
+            showlegend: false
+        };
         
-        Plotly.newPlot('chartArea', [traceCandle, traceEMA, traceUp1, traceDn1, traceUp2, traceDn2, traceBuy, traceSell], layout, {responsive: true});
-        
+        // 💡 핀치 줌 및 확대/축소 기능을 부드럽게 만드는 설정(config)
+        const config = {
+            responsive: true,
+            scrollZoom: true, // 마우스 휠이나 두 손가락으로 줌 가능
+            displayModeBar: false, // 복잡한 버튼 바 숨김
+            doubleClick: 'reset' // 더블 클릭하면 원래 크기로!
+        };
+
+        Plotly.newPlot('chartArea', [traceCandle, traceEMA, ...bBands, traceBuy, traceSell], layout, config);
         btn.innerText = "백테스트 실행하기";
 
-    } catch (err) {
-        // 에러가 났을 때 침묵하지 않고 경고창을 띄워줍니다!
-        alert("백테스트 중 오류가 발생했습니다!\n\n" + err);
-        btn.innerText = "백테스트 실행하기";
-    }
+    } catch (err) { alert("오류: " + err); btn.innerText = "백테스트 실행하기"; }
 }
 </script>
 
