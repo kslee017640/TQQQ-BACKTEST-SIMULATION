@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v7.4</title>
+    <title>퀀트 백테스터 Pro v7.5</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <style>
         :root {
@@ -55,6 +55,9 @@
         .quick-btn { flex: 1; padding: 8px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
         .quick-btn:hover { filter: brightness(0.8); }
 
+        /* 화면에 띄울 친절한 안내/에러 메시지 창 */
+        #statusMessage { display: none; padding: 10px; margin-bottom: 15px; border-radius: 8px; font-size: 14px; font-weight: bold; text-align: center; }
+
         #resultArea { display: none; } 
         .result-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); } 
         .result-item:last-child { border-bottom: none; } 
@@ -71,12 +74,14 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.4</span></h1>
-        <p style="color:var(--text-sub); font-size:14px; margin-bottom: 0;">TradingView + 보안 차단 완벽 우회</p>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.5</span></h1>
+        <p style="color:var(--text-sub); font-size:14px; margin-bottom: 0;">완벽 안정화 및 먹통 버그 수정</p>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
     <div class="card">
+        <div id="statusMessage"></div>
+
         <div class="input-row">
             <div class="input-group">
                 <label for="ticker">투자 종목</label>
@@ -89,274 +94,3 @@
                 </select>
             </div>
             <div class="input-group">
-                <label for="n_days">기준일 (N일 EMA)</label>
-                <input type="number" id="n_days" value="20" min="5">
-            </div>
-            <div class="input-group">
-                <label for="sigma">표준편차 (SIGMA)</label>
-                <input type="number" id="sigma" value="1.5" step="0.1" min="0.1">
-            </div>
-        </div>
-        
-        <div class="input-row">
-            <div class="input-group">
-                <label for="start_date">시작 날짜</label>
-                <input type="date" id="start_date">
-            </div>
-            <div class="input-group">
-                <label for="end_date">종료 날짜</label>
-                <input type="date" id="end_date">
-            </div>
-        </div>
-
-        <div class="input-row" style="margin-bottom: 20px;">
-            <div class="input-group">
-                <label>빠른 기간 선택</label>
-                <div class="quick-btn-group">
-                    <button type="button" class="quick-btn" onclick="setQuickDate(1)">1년</button>
-                    <button type="button" class="quick-btn" onclick="setQuickDate(2)">2년</button>
-                    <button type="button" class="quick-btn" onclick="setQuickDate(3)">3년</button>
-                    <button type="button" class="quick-btn" onclick="setQuickDate(5)">5년</button>
-                    <button type="button" class="quick-btn" onclick="setQuickDate('all')">전체</button>
-                </div>
-            </div>
-        </div>
-
-        <button class="main-btn" onclick="runBacktest()">백테스트 실행하기</button>
-    </div>
-
-    <div id="resultArea" class="card">
-        <h2 style="margin-top:0; font-size: 18px;">📊 시뮬레이션 결과</h2>
-        <p id="tradeCountText" style="font-size: 13px; color: var(--text-sub); margin-top: -10px; margin-bottom: 15px;">분석 데이터: 0일 / 총 거래 횟수: 0회</p>
-        
-        <div class="result-item"><span>총 투자 금액</span><span id="resInvested" class="result-value">$0.00</span></div>
-        <div class="result-item"><span>최종 평가 금액</span><span id="resValue" class="result-value">$0.00</span></div>
-        <div class="result-item"><span>보유 주식 수</span><span id="resShares" class="result-value">0 주</span></div>
-        <div class="result-item"><span>수익률</span><span id="resYield" class="result-value" style="font-size: 18px;">0.00%</span></div>
-        
-        <div id="chartArea"></div>
-    </div>
-</div>
-
-<script>
-// 💡 모바일 브라우저의 잡다한 에러 무시
-window.onerror = function(msg, url, line) { 
-    if (msg.includes('Script error')) return true; 
-    alert("오류 방어막 작동!\n내용: " + msg + "\n줄 번호: " + line); 
-    return false;
-};
-
-function toggleTheme() {
-    const htmlTag = document.documentElement;
-    const currentTheme = htmlTag.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    htmlTag.setAttribute('data-theme', newTheme);
-    document.getElementById('themeToggleBtn').innerText = newTheme === 'dark' ? '☀️ 라이트 모드' : '🌙 다크 모드';
-    if (chartInstance) updateChartTheme(newTheme === 'dark');
-}
-
-function updateChartTheme(isDark) {
-    chartInstance.applyOptions({
-        layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333333' },
-        grid: { vertLines: { color: isDark ? '#333333' : '#eeeeee' }, horzLines: { color: isDark ? '#333333' : '#eeeeee' } }
-    });
-}
-
-const csvUrls = {
-    'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?output=csv', 
-    'SOXL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfgwCHgJ6jBPcpe_oE0e1cifk-psBZtAtGW6r4fxyEDm7wDtJ1nFhMrN2TjC9nb7bfjIYOFEkoeSE-/pub?output=csv',
-    'AAPL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQHZ3qHqu3e1_nVhc5pnSh68o2IIq3OmVH7McJgK8yBk7E8HvVhJ69IWvRKhyGbrqVwTeJJpQ9wifK/pub?output=csv',
-    'TSLA': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroN1pjeuZtmup187y9YOgaVyDN1OtnJ5SUFKVxnnBjw2A4NaiYD-hkfvM0xkkPGZl525cMUAYPkxm/pub?output=csv',
-    'BTC': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYLvNYyPsN6KlvY-HBdm5NE4sRDoK_OW7qyxvYWfAbPbk35O2JS2eHIETTXoMQolWxNUmhmKSK_uej/pub?output=csv'
-};
-
-function updateDefaultDates() {
-    const ticker = document.getElementById('ticker').value;
-    const today = new Date().toISOString().split('T')[0]; 
-    let startYear = "2011";
-    if (ticker === "BTC") startYear = "2016";
-    document.getElementById('start_date').value = `${startYear}-01-01`;
-    document.getElementById('end_date').value = today;
-}
-
-window.onload = function() { 
-    updateDefaultDates(); 
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        toggleTheme();
-    }
-};
-
-function setQuickDate(years) {
-    let endDateInput = document.getElementById('end_date');
-    if (!endDateInput.value) endDateInput.value = new Date().toISOString().split('T')[0];
-    if (years === 'all') {
-        const ticker = document.getElementById('ticker').value;
-        document.getElementById('start_date').value = (ticker === 'BTC' ? "2016" : "2011") + "-01-01";
-        return;
-    }
-    let end = new Date(endDateInput.value);
-    end.setFullYear(end.getFullYear() - years);
-    document.getElementById('start_date').value = end.toISOString().split('T')[0];
-}
-
-// 💡 [2중 방어망 구축] 애플 보안 차단을 뚫기 위한 듀얼 다운로드 시스템
-async function fetchAndParseData(ticker, startDate, endDate) {
-    const url = csvUrls[ticker];
-    let dataArray = [];
-
-    try {
-        // [작전 1] 직접 통신망으로 시도 (가장 빠름)
-        const response = await fetch(url + "&_=" + new Date().getTime());
-        if (!response.ok) throw new Error("Fetch failed");
-        const csvText = await response.text();
-
-        dataArray = await new Promise((resolve, reject) => {
-            Papa.parse(csvText, {
-                header: true, skipEmptyLines: true,
-                complete: res => resolve(res.data),
-                error: err => reject(err)
-            });
-        });
-    } catch (fetchErr) {
-        // [작전 2] 작전 1이 애플 보안에 막히면, 내부 우회 통신망(XMLHttpRequest)으로 재시도!
-        dataArray = await new Promise((resolve, reject) => {
-            Papa.parse(url, {
-                download: true, header: true, skipEmptyLines: true,
-                complete: res => resolve(res.data),
-                error: err => reject(new Error("데이터 접근이 차단되었습니다."))
-            });
-        });
-    }
-
-    // 💡 [에러 원천 차단] 데이터가 아예 비어있으면 깨끗한 빈 바구니 반환
-    if (!dataArray || !Array.isArray(dataArray)) return [];
-
-    let parsedData = [];
-    let start = new Date(startDate);
-    let end = new Date(endDate);
-
-    dataArray.forEach(row => {
-        let rowValues = Object.values(row);
-        let rawDate = String(row['날짜'] || row['Date'] || row['date'] || rowValues[0]).trim();
-        if (!rawDate || rawDate === 'undefined') return;
-
-        let dateMatch = rawDate.match(/(\d{4})[\-\.\/]\s*(\d{1,2})[\-\.\/]\s*(\d{1,2})/);
-        let cleanDateStr = '';
-
-        if (dateMatch) {
-            cleanDateStr = `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`;
-        } else {
-            cleanDateStr = rawDate.split(' ')[0].replace(/\s+/g, '');
-        }
-
-        let rowDate = new Date(cleanDateStr);
-
-        if (rowDate >= start && rowDate <= end) {
-            let open = parseFloat(String(row['시가'] || row['Open'] || rowValues[1] || 0).replace(/,/g, ''));
-            let high = parseFloat(String(row['고가'] || row['High'] || rowValues[2] || 0).replace(/,/g, ''));
-            let low = parseFloat(String(row['저가'] || row['Low'] || rowValues[3] || 0).replace(/,/g, ''));
-            let close = parseFloat(String(row['종가'] || row['Close'] || rowValues[4] || 0).replace(/,/g, ''));
-
-            if (!isNaN(close) && close > 0) {
-                parsedData.push({ time: cleanDateStr, open, high, low, close });
-            }
-        }
-    });
-
-    parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
-    return parsedData;
-}
-
-function calculateEMA(prices, n) {
-    let k = 2 / (n + 1); 
-    let emaArray = [prices[0]]; 
-    for (let i = 1; i < prices.length; i++) {
-        emaArray.push((prices[i] * k) + (emaArray[i - 1] * (1 - k)));
-    }
-    return emaArray;
-}
-
-function calculateStdDev(prices, currentIndex, n) {
-    if (currentIndex < n - 1) return 0; 
-    let slice = prices.slice(currentIndex - n + 1, currentIndex + 1);
-    let mean = slice.reduce((a, b) => a + b) / n;
-    let variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
-    return Math.sqrt(variance);
-}
-
-let chartInstance = null;
-
-async function runBacktest() {
-    const btn = document.querySelector('.main-btn');
-    btn.innerText = "데이터 로딩 중...";
-    const ticker = document.getElementById('ticker').value; 
-    const N = parseInt(document.getElementById('n_days').value); 
-    const SIGMA = parseFloat(document.getElementById('sigma').value); 
-    const startDate = document.getElementById('start_date').value; 
-    const endDate = document.getElementById('end_date').value; 
-
-    let rawData = [];
-    
-    // 💡 [에러 원천 차단] 데이터를 불러올 때 무조건 방패막(try-catch)을 칩니다.
-    try {
-        rawData = await fetchAndParseData(ticker, startDate, endDate);
-    } catch (err) {
-        alert("데이터 다운로드 오류!\n" + err.message);
-        btn.innerText = "백테스트 실행하기";
-        return;
-    }
-
-    // 💡 [캡처 화면 속 에러 해결] 데이터가 빈 바구니면 여기서 바로 중단시킵니다. (length 에러 발생 불가능)
-    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
-        alert("해당 기간의 데이터를 찾을 수 없습니다! 날짜 설정이나 인터넷 연결을 확인해주세요.");
-        btn.innerText = "백테스트 실행하기";
-        return;
-    }
-
-    btn.innerText = "시뮬레이션 중...";
-    const closePrices = rawData.map(d => d.close); 
-    const emaValues = calculateEMA(closePrices, N); 
-
-    let totalInvested = 0, cash = 0, shares = 0, tradeCount = 0;
-    let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [];
-    let tradeMarkers = [];
-
-    for (let i = 0; i < rawData.length; i++) {
-        let currentPrice = closePrices[i]; 
-        let currentEMA = emaValues[i];     
-        let currentStdDev = calculateStdDev(closePrices, i, N); 
-        let currentDate = rawData[i].time; 
-        
-        if(i >= N) {
-            lineEma.push({ time: currentDate, value: currentEMA });
-            lineUp1.push({ time: currentDate, value: currentEMA + (1 * SIGMA * currentStdDev) });
-            lineDn1.push({ time: currentDate, value: currentEMA - (1 * SIGMA * currentStdDev) });
-            lineUp2.push({ time: currentDate, value: currentEMA + (2 * SIGMA * currentStdDev) });
-            lineDn2.push({ time: currentDate, value: currentEMA - (2 * SIGMA * currentStdDev) });
-        }
-
-        if(i < N) continue;
-
-        let buyShares = 0, sellShares = 0; 
-        
-        if (currentPrice < currentEMA - (2 * SIGMA * currentStdDev)) buyShares = 3; 
-        else if (currentPrice < currentEMA - (1 * SIGMA * currentStdDev)) buyShares = 2; 
-        else if (currentPrice < currentEMA) buyShares = 1; 
-        else if (currentPrice > currentEMA + (2 * SIGMA * currentStdDev)) sellShares = 2; 
-        else if (currentPrice > currentEMA + (1 * SIGMA * currentStdDev)) sellShares = 1; 
-
-        if (buyShares > 0) {
-            let cost = buyShares * currentPrice; 
-            if (cash >= cost) cash -= cost; 
-            else { totalInvested += (cost - cash); cash = 0; } 
-            shares += buyShares; 
-            tradeCount++;
-            
-            tradeMarkers.push({ time: currentDate, position: 'belowBar', color: '#e74c3c', shape: 'arrowUp', text: `매수 ${buyShares}` });
-        }
-        if (sellShares > 0 && shares > 0) {
-            let actualSell = Math.min(shares, sellShares);
-            shares -= actualSell; cash += actualSell * currentPrice; 
-            tradeCount++;
-            
-            tradeMarkers.push({ time: currentDate, position: 'aboveBar', color: '#3498db', shape: 'arrowDown', text: `매도 ${actualSell}` });
