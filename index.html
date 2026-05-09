@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.1</title>
+    <title>퀀트 백테스터 Pro v9.2</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -64,14 +64,13 @@
         .progress-bar { width: 0%; height: 100%; background-color: var(--primary-color); transition: width 0.1s ease; }
         .progress-text { font-size: 12px; color: var(--text-main); font-weight: bold; position: absolute; width: 100%; text-align: center; line-height: 16px; top: 0; left: 0; text-shadow: 0 0 2px #fff; }
 
-        /* 복원된 빠른 기간 버튼 그룹 */
         .quick-btn-group { display: flex; gap: 5px; margin-top: 5px; }
         .quick-btn { flex: 1; padding: 12px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
         .quick-btn:hover { filter: brightness(0.8); }
 
         /* 테이블 디자인 */
         .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .sweep-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; min-width: 850px; }
+        .sweep-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; min-width: 900px; }
         .sweep-table th { background-color: var(--btn-bg); color: var(--text-main); font-weight: bold; padding: 12px 10px; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; }
         .sweep-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; background-color: var(--card-bg); color: var(--text-main); }
         .sweep-table tr:hover td { background-color: rgba(76, 175, 80, 0.15); }
@@ -92,12 +91,13 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.1</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.2</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
     <div class="card">
         <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">1단계: 기본 설정</h3>
+        
         <div class="input-row">
             <div class="input-group">
                 <label for="ticker">투자 종목</label>
@@ -122,7 +122,9 @@
                     <option value="500">500 달러 단위</option>
                 </select>
             </div>
+        </div>
 
+        <div class="input-row">
             <div class="input-group">
                 <label for="start_date">시작 날짜</label>
                 <input type="date" id="start_date">
@@ -211,10 +213,12 @@
         <h2 style="margin-top:0; font-size: 18px;">📊 단일 시뮬레이션 상세 결과</h2>
         <p id="tradeCountText" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">데이터 분석 결과</p>
 
-        <div class="result-item"><span>총 투자 금액</span><span id="resInvested" class="result-value">$0.00</span></div>
-        <div class="result-item"><span>최종 평가 금액</span><span id="resValue" class="result-value">$0.00</span></div>
-        <div class="result-item"><span>보유 주식 수</span><span id="resShares" class="result-value">0 주</span></div>
-        <div class="result-item"><span>수익률</span><span id="resYield" class="result-value" style="font-size: 18px;">0.00%</span></div>
+        <div class="result-item"><span>총 투자 금액 (누적 자본 유입)</span><span id="resInvested" class="result-value">$0.00</span></div>
+        <div class="result-item"><span>보유 현금</span><span id="resCash" class="result-value">$0.00</span></div>
+        <div class="result-item"><span>보유 주식(코인) 수</span><span id="resShares" class="result-value">0 주</span></div>
+        <div class="result-item"><span>보유 주식 환산 금액</span><span id="resSharesValue" class="result-value">$0.00</span></div>
+        <div class="result-item"><span>총자산 (= 보유현금 + 환산 금액)</span><span id="resTotalAssets" class="result-value">$0.00</span></div>
+        <div class="result-item"><span>투자금액 대비 총자산 수익률</span><span id="resYield" class="result-value" style="font-size: 18px;">0.00%</span></div>
         
         <div id="chartArea"></div>
     </div>
@@ -231,13 +235,15 @@
                         <th>N (기준일)</th>
                         <th>SIGMA</th>
                         <th>총 투자 금액</th>
-                        <th>최종 평가 금액</th>
+                        <th>보유 현금</th>
+                        <th>보유 수량</th>
+                        <th>환산 금액</th>
+                        <th>총자산</th>
                         <th>수익률</th>
                         <th>MDD (최대 낙폭)</th>
                         <th>총 거래</th>
-                        <th>매수 회수</th>
-                        <th>매도 회수</th>
-                        <th>보유 수량</th>
+                        <th>매수</th>
+                        <th>매도</th>
                     </tr>
                 </thead>
                 <tbody id="sweepTableBody">
@@ -300,17 +306,19 @@ window.onload = function() {
     }
 };
 
+// 💡 [버그 수정] "전체"를 눌렀을 때 각 종목의 원천 데이터에 맞게 올바른 시작일 배정
 function setQuickDate(years) {
-    let end = new Date();
+    const ticker = document.getElementById('ticker').value;
     if (years === 'all') {
-        document.getElementById('start_date').value = "2024-05-09";
+        document.getElementById('start_date').value = (ticker === 'BTC' ? "2016-01-01" : "2011-01-01");
     } else {
+        let end = new Date();
         end.setFullYear(end.getFullYear() - years);
         document.getElementById('start_date').value = end.toISOString().split('T')[0];
     }
 }
 
-// v8.4에서 검증된 고성능 날짜 형식 정밀 보정기
+// v8.4에서 검증된 정밀 날짜 파서
 function parseRobustDate(rawVal) {
     if (!rawVal) return null;
     let s = String(rawVal).trim();
@@ -345,7 +353,7 @@ function parseRobustDate(rawVal) {
     return null;
 }
 
-// v8.4 구글 연동 캐시 무시형 완벽 동기화 다운로더
+// v8.4 구글 연동 캐시 무시형 비동기 다운로더
 async function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
@@ -443,18 +451,22 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-// 💡 [v9.1 핵심] BTC 전용 단위 매매 및 10달러 이하 저가 보정 로직을 갖춘 시뮬레이션 코어 엔진
+// 💡 [v9.2] $10,000 고정 초기자금 기반의 정밀 트레이딩 및 보정 연산기
 function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
-    let totalInvested = 0, cash = 0, shares = 0, tradeCount = 0;
-    let buyCount = 0, sellCount = 0;
+    let totalInvested = 10000; // 초기자금 $10,000 고정
+    let cash = 10000;          // 가용 현금 $10,000 시작
+    let shares = 0;
+    let tradeCount = 0;
+    let buyCount = 0;
+    let sellCount = 0;
     
     let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [];
     let tradeMarkers = [];
 
-    let maxPortfolioValue = 0;
+    let maxPortfolioValue = 10000;
     let maxDrawdown = 0;
 
     for (let i = 0; i < rawData.length; i++) {
@@ -477,24 +489,19 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
             if (buySignal > 0) {
                 let buySharesAmt = 0;
                 let cost = 0;
-                let isDollarBased = false;
 
                 if (ticker === 'BTC') {
-                    // BTC 일 때는 설정한 가변 달러 단위로 매수
                     cost = buySignal * btcUnitValue;
                     buySharesAmt = cost / curPrice;
-                    isDollarBased = true;
                 } else if (curPrice <= 10) {
-                    // 일반 주식이 가격 분할 등으로 인해 10달러 이하면 10달러 기준으로 매수 보정
-                    cost = buySignal * 10;
+                    cost = buySignal * 10; // 10달러 보정
                     buySharesAmt = cost / curPrice;
-                    isDollarBased = true;
                 } else {
-                    // 정상 가격 주식은 기본 주당 매수
                     buySharesAmt = buySignal;
                     cost = buySharesAmt * curPrice;
                 }
 
+                // 현금 차감 및 필요시 투자금 추가 충전 (논리 유지)
                 if (cash >= cost) {
                     cash -= cost;
                 } else {
@@ -505,29 +512,27 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
                 tradeCount++;
                 buyCount++;
                 
+                // 💡 글자 없이 오직 빨간 동그란 점(circle)만 남겨서 시각적 부담 제거
                 tradeMarkers.push({ 
                     time: curDate, 
                     position: 'belowBar', 
-                    color: '#e74c3c', 
-                    shape: 'arrowUp', 
-                    text: isDollarBased ? `매수 $${cost}` : `매수 ${buySharesAmt}주` 
+                    color: '#ff4d4d', 
+                    shape: 'circle', 
+                    text: '' 
                 });
 
             } else if (sellSignal > 0 && shares > 0) {
                 let sellSharesAmt = 0;
                 let revenue = 0;
-                let isDollarBased = false;
 
                 if (ticker === 'BTC') {
                     let desiredValue = sellSignal * btcUnitValue;
                     sellSharesAmt = Math.min(shares, desiredValue / curPrice);
                     revenue = sellSharesAmt * curPrice;
-                    isDollarBased = true;
                 } else if (curPrice <= 10) {
                     let desiredValue = sellSignal * 10;
                     sellSharesAmt = Math.min(shares, desiredValue / curPrice);
                     revenue = sellSharesAmt * curPrice;
-                    isDollarBased = true;
                 } else {
                     sellSharesAmt = Math.min(shares, sellSignal);
                     revenue = sellSharesAmt * curPrice;
@@ -539,18 +544,19 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
                     tradeCount++;
                     sellCount++;
                     
+                    // 💡 글자 없이 오직 파란 동그란 점(circle)만 남겨서 시각적 부담 제거
                     tradeMarkers.push({ 
                         time: curDate, 
                         position: 'aboveBar', 
                         color: '#3498db', 
-                        shape: 'arrowDown', 
-                        text: isDollarBased ? `매도 $${revenue.toFixed(0)}` : `매도 ${sellSharesAmt}주` 
+                        shape: 'circle', 
+                        text: '' 
                     });
                 }
             }
         }
 
-        // MDD (최대 낙폭) 리얼타임 트래킹
+        // MDD (최대 낙폭) 실시간 연산
         let currentPortfolio = cash + (shares * curPrice);
         if (currentPortfolio > maxPortfolioValue) {
             maxPortfolioValue = currentPortfolio;
@@ -563,11 +569,13 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
         }
     }
 
-    let finalValue = (shares * closePrices[closePrices.length - 1]) + cash;
-    let yieldPer = totalInvested > 0 ? ((finalValue - totalInvested) / totalInvested) * 100 : 0;
+    const finalPrice = closePrices[closePrices.length - 1];
+    const finalSharesValue = shares * finalPrice;
+    const finalTotalAssets = cash + finalSharesValue;
+    const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
 
     return {
-        totalInvested, finalValue, shares, yieldPer, tradeCount, buyCount, sellCount,
+        totalInvested, cash, finalSharesValue, finalTotalAssets, shares, yieldPer, tradeCount, buyCount, sellCount,
         mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2
     };
 }
@@ -593,12 +601,15 @@ async function runSingleBacktest() {
 
     const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker);
 
-    // 단일 테스트 결과 UI 출력 (보유 수량 형식 유동적 변경)
+    // 단일 테스트 결과 UI 출력 (소수점 자산 완벽 적용)
     const sharesText = ticker === 'BTC' || calc.shares % 1 !== 0 ? calc.shares.toFixed(6) + " 주" : calc.shares + " 주";
     document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
+    
     document.getElementById('resInvested').innerText = "$" + calc.totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('resValue').innerText = "$" + calc.finalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resCash').innerText = "$" + calc.cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resShares').innerText = sharesText;
+    document.getElementById('resSharesValue').innerText = "$" + calc.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resTotalAssets').innerText = "$" + calc.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resYield').innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%";
     document.getElementById('resYield').style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
     
@@ -609,9 +620,32 @@ async function runSingleBacktest() {
     chartContainer.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     
+    // 💡 [v9.2] 핀치줌 및 상하 스크롤/줌을 정밀 컨트롤하기 위한 Lightweight Charts 레이아웃 옵션 설계
     chartInstance = LightweightCharts.createChart(chartContainer, {
         layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
         grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } },
+        rightPriceScale: {
+            autoScale: true,       // 줌 아웃/스크롤 시 가격 범위 자동 조정 활성화
+            scaleMargins: {
+                top: 0.1,
+                bottom: 0.1,
+            },
+            axisPressedMouseMove: true, // 가격축 드래그 상하 줌 기능
+        },
+        handleScale: {
+            mouseWheel: true,
+            pinch: true,           // 모바일 핀치줌 기능
+            axisPressedMouseMove: {
+                time: true,
+                price: true,       // 마우스 드래그 상하축 스케일링 활성화
+            },
+        },
+        handleScroll: {
+            mouseWheel: true,
+            pressedMouseMove: true,
+            horzTouchDrag: true,
+            vertTouchDrag: true,   // 모바일 터치 드래그 스크롤 상하 활성화
+        },
         timeScale: { borderColor: '#555' }
     });
 
@@ -672,7 +706,7 @@ async function runParameterSweep() {
         return;
     }
 
-    // 1. 경우의 수(조합) 리스트 사전 빌드
+    // 경우의 수(조합) 리스트 빌드
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
@@ -692,7 +726,7 @@ async function runParameterSweep() {
     let results = [];
     let currentIndex = 0;
 
-    // 2. 비동기 청크 분할 연산
+    // 비동기 청크 분할 연산
     async function executeChunk() {
         const chunkSize = 25; 
         const limit = Math.min(currentIndex + chunkSize, total);
@@ -704,7 +738,9 @@ async function runParameterSweep() {
                 N: comb.N,
                 SIGMA: comb.SIGMA,
                 totalInvested: calc.totalInvested,
-                finalValue: calc.finalValue,
+                cash: calc.cash,
+                finalSharesValue: calc.finalSharesValue,
+                finalTotalAssets: calc.finalTotalAssets,
                 shares: calc.shares,
                 yieldPer: calc.yieldPer,
                 tradeCount: calc.tradeCount,
@@ -734,7 +770,7 @@ async function runParameterSweep() {
     await executeChunk();
 }
 
-// 💡 [v9.1 핵심] 스윕 표 출력 및 동적 행 클릭 연계 시스템
+// 💡 [v9.2] 스윕 표 출력 및 동적 행 클릭 연계 시스템
 function renderSweepTable(results, ticker) {
     const tableBody = document.getElementById('sweepTableBody');
     tableBody.innerHTML = '';
@@ -751,16 +787,18 @@ function renderSweepTable(results, ticker) {
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
             <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td>$${res.finalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td>$${res.cash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td>${sharesDisp}</td>
+            <td>$${res.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="font-weight:bold; color:var(--primary-color);">$${res.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="color:${yieldColor}; font-weight:bold;">${yieldPrefix}${res.yieldPer.toFixed(2)}%</td>
             <td style="color:#e67e22; font-weight:bold;">-${res.mdd.toFixed(2)}%</td>
             <td style="font-weight:bold;">${res.tradeCount}회</td>
             <td style="color:#ff4d4d;">${res.buyCount}회</td>
             <td style="color:#3498db;">${res.sellCount}회</td>
-            <td>${sharesDisp}</td>
         `;
 
-        // 행 클릭 시 해당 N과 SIGMA 값을 연계하여 단일 탭 차트를 즉시 렌더링
+        // 클릭 연동 스크롤 이동
         row.onclick = function() {
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
