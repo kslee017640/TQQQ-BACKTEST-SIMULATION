@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.2</title>
+    <title>퀀트 백테스터 Pro v9.3</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -80,8 +80,35 @@
         .result-item:last-child { border-bottom: none; } 
         .result-value { font-weight: bold; color: var(--primary-color); transition: color 0.3s; } 
         
-        #chartArea { width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); transition: border-color 0.3s; }
+        /* 💡 차트 및 범례용 래퍼 스타일 */
+        .chart-wrapper { position: relative; width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+        #chartArea { width: 100%; height: 100%; }
         
+        /* 💡 오버레이 스마트 범례 스타일 */
+        .chart-legend {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 10;
+            font-size: 11px;
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(255, 255, 255, 0.85);
+            color: #333333;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #dddddd;
+            pointer-events: none; /* 마우스 이벤트 클릭 스루 허용 */
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        [data-theme="dark"] .chart-legend {
+            background: rgba(30, 30, 30, 0.85);
+            color: #e0e0e0;
+            border-color: #444444;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
         @media (max-width: 600px) {
             .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; }
         }
@@ -91,7 +118,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.2</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.3</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -220,7 +247,13 @@
         <div class="result-item"><span>총자산 (= 보유현금 + 환산 금액)</span><span id="resTotalAssets" class="result-value">$0.00</span></div>
         <div class="result-item"><span>투자금액 대비 총자산 수익률</span><span id="resYield" class="result-value" style="font-size: 18px;">0.00%</span></div>
         
-        <div id="chartArea"></div>
+        <div class="chart-wrapper">
+            <div id="chartLegend" class="chart-legend" style="display: none;"></div>
+            <div id="chartArea"></div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-sub); margin-top: 8px; text-align: center;">
+            💡 <b>상하 가격 조작 팁:</b> 우측 가격 축 영역을 드래그하면 화면 고정(AutoScale)이 풀리며 상하 조작이 가능합니다.<br>다시 기본 크기로 맞추려면 차트를 <b>더블 클릭</b>하세요.
+        </p>
     </div>
 
     <div id="sweepResultsArea" class="card" style="display: none;">
@@ -306,7 +339,6 @@ window.onload = function() {
     }
 };
 
-// 💡 [버그 수정] "전체"를 눌렀을 때 각 종목의 원천 데이터에 맞게 올바른 시작일 배정
 function setQuickDate(years) {
     const ticker = document.getElementById('ticker').value;
     if (years === 'all') {
@@ -451,7 +483,7 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-// 💡 [v9.2] $10,000 고정 초기자금 기반의 정밀 트레이딩 및 보정 연산기
+// $10,000 고정 초기자금 기반의 정밀 트레이딩 및 보정 연산기
 function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
@@ -494,14 +526,13 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
                     cost = buySignal * btcUnitValue;
                     buySharesAmt = cost / curPrice;
                 } else if (curPrice <= 10) {
-                    cost = buySignal * 10; // 10달러 보정
+                    cost = buySignal * 10; 
                     buySharesAmt = cost / curPrice;
                 } else {
                     buySharesAmt = buySignal;
                     cost = buySharesAmt * curPrice;
                 }
 
-                // 현금 차감 및 필요시 투자금 추가 충전 (논리 유지)
                 if (cash >= cost) {
                     cash -= cost;
                 } else {
@@ -512,7 +543,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
                 tradeCount++;
                 buyCount++;
                 
-                // 💡 글자 없이 오직 빨간 동그란 점(circle)만 남겨서 시각적 부담 제거
                 tradeMarkers.push({ 
                     time: curDate, 
                     position: 'belowBar', 
@@ -544,7 +574,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
                     tradeCount++;
                     sellCount++;
                     
-                    // 💡 글자 없이 오직 파란 동그란 점(circle)만 남겨서 시각적 부담 제거
                     tradeMarkers.push({ 
                         time: curDate, 
                         position: 'aboveBar', 
@@ -556,7 +585,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
             }
         }
 
-        // MDD (최대 낙폭) 실시간 연산
         let currentPortfolio = cash + (shares * curPrice);
         if (currentPortfolio > maxPortfolioValue) {
             maxPortfolioValue = currentPortfolio;
@@ -580,6 +608,51 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     };
 }
 
+// 💡 [v9.3] 마우스 크로스헤어 움직임에 대응하여 실시간으로 수치를 렌더링하는 전용 오버레이 범례 제어기
+function updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA) {
+    const legendEl = document.getElementById('chartLegend');
+    if (!legendEl) return;
+    
+    let html = `<div style="font-weight:bold; margin-bottom:5px; border-bottom:1px solid var(--border-color); padding-bottom:3px;">📅 ${dateStr}</div>`;
+    if (candle) {
+        html += `<div><b>종가:</b> $${candle.close.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    }
+    if (ema) {
+        html += `<div style="color:#f1c40f; font-weight:bold;"><b>EMA (${N}일):</b> $${ema.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    }
+    if (u1) {
+        html += `<div style="color:#2ecc71; font-weight:bold;"><b>+1σ (+${SIGMA.toFixed(1)}σ):</b> $${u1.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    }
+    if (d1) {
+        html += `<div style="color:#3498db; font-weight:bold;"><b>-1σ (-${SIGMA.toFixed(1)}σ):</b> $${d1.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    }
+    if (u2) {
+        html += `<div style="color:#e67e22; font-weight:bold;"><b>+2σ (+${(SIGMA * 2).toFixed(1)}σ):</b> $${u2.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    }
+    if (d2) {
+        html += `<div style="color:#9b59b6; font-weight:bold;"><b>-2σ (-${(SIGMA * 2).toFixed(1)}σ):</b> $${d2.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    }
+    legendEl.innerHTML = html;
+    legendEl.style.display = 'block';
+}
+
+function showDefaultLegend(rawData, calc, N, SIGMA) {
+    if (!rawData || rawData.length === 0) return;
+    const lastData = rawData[rawData.length - 1];
+    const dateStr = lastData.time;
+    
+    const findVal = (arr, date) => arr.find(item => item.time === date) || null;
+
+    const candle = lastData;
+    const ema = findVal(calc.lineEma, dateStr);
+    const u1 = findVal(calc.lineUp1, dateStr);
+    const d1 = findVal(calc.lineDn1, dateStr);
+    const u2 = findVal(calc.lineUp2, dateStr);
+    const d2 = findVal(calc.lineDn2, dateStr);
+
+    updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
+}
+
 // 🎯 [단일 백테스트 실행기]
 async function runSingleBacktest() {
     const btn = document.querySelector('#single_tab .main-btn');
@@ -601,7 +674,6 @@ async function runSingleBacktest() {
 
     const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker);
 
-    // 단일 테스트 결과 UI 출력 (소수점 자산 완벽 적용)
     const sharesText = ticker === 'BTC' || calc.shares % 1 !== 0 ? calc.shares.toFixed(6) + " 주" : calc.shares + " 주";
     document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
     
@@ -620,31 +692,26 @@ async function runSingleBacktest() {
     chartContainer.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     
-    // 💡 [v9.2] 핀치줌 및 상하 스크롤/줌을 정밀 컨트롤하기 위한 Lightweight Charts 레이아웃 옵션 설계
+    // 💡 [v9.3 피드백 수렴] 가격축 및 차트 영역의 상하 스크롤/줌 드래그 동작 극대화 설계
     chartInstance = LightweightCharts.createChart(chartContainer, {
         layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
         grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } },
         rightPriceScale: {
-            autoScale: true,       // 줌 아웃/스크롤 시 가격 범위 자동 조정 활성화
-            scaleMargins: {
-                top: 0.1,
-                bottom: 0.1,
-            },
-            axisPressedMouseMove: true, // 가격축 드래그 상하 줌 기능
+            autoScale: true,       
+            scaleMargins: { top: 0.1, bottom: 0.1 },
+            axisPressedMouseMove: true, // Y축 영역 드래그를 통한 스케일 줌 활성화
         },
         handleScale: {
             mouseWheel: true,
-            pinch: true,           // 모바일 핀치줌 기능
-            axisPressedMouseMove: {
-                time: true,
-                price: true,       // 마우스 드래그 상하축 스케일링 활성화
-            },
+            pinch: true,           // 터치 줌 가동
+            axisPressedMouseMove: { time: true, price: true }, // 차트 영역 축 마우스 드래그 줌
+            axisDoubleClickReset: { time: true, price: true }  // 더블 클릭 리셋 완벽 활성화
         },
         handleScroll: {
             mouseWheel: true,
             pressedMouseMove: true,
             horzTouchDrag: true,
-            vertTouchDrag: true,   // 모바일 터치 드래그 스크롤 상하 활성화
+            vertTouchDrag: true,   // 모바일 수직 쓸어내리기 활성화
         },
         timeScale: { borderColor: '#555' }
     });
@@ -652,21 +719,41 @@ async function runSingleBacktest() {
     const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a' });
     candleSeries.setData(rawData);
     
-    const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2 });
+    // 💡 [v9.3 피드백 수렴] EMA 및 Bollinger 시그마선 실선화(lineWidth: 2) 및 개별 고대비 색상 매핑
+    const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2, title: 'EMA' });
     emaSeries.setData(calc.lineEma);
 
-    const up1 = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.5)', lineWidth: 1, lineStyle: 2 });
+    const up1 = chartInstance.addLineSeries({ color: '#2ecc71', lineWidth: 2, title: '+1σ' }); // 초록 실선 2px
     up1.setData(calc.lineUp1);
-    const dn1 = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.5)', lineWidth: 1, lineStyle: 2 });
+    const dn1 = chartInstance.addLineSeries({ color: '#3498db', lineWidth: 2, title: '-1σ' }); // 파랑 실선 2px
     dn1.setData(calc.lineDn1);
 
-    const up2 = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.3)', lineWidth: 1, lineStyle: 2 });
+    const up2 = chartInstance.addLineSeries({ color: '#e67e22', lineWidth: 2, title: '+2σ' }); // 주황 실선 2px
     up2.setData(calc.lineUp2);
-    const dn2 = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.3)', lineWidth: 1, lineStyle: 2 });
+    const dn2 = chartInstance.addLineSeries({ color: '#9b59b6', lineWidth: 2, title: '-2σ' }); // 보라 실선 2px
     dn2.setData(calc.lineDn2);
 
     candleSeries.setMarkers(calc.tradeMarkers);
     chartInstance.timeScale().fitContent();
+
+    // 💡 범례 초기 바인딩 및 실시간 오버레이 업데이트 구독 등록
+    showDefaultLegend(rawData, calc, N, SIGMA);
+    chartInstance.subscribeCrosshairMove(param => {
+        if (!param || !param.time || param.point === undefined || param.point.x < 0 || param.point.y < 0) {
+            showDefaultLegend(rawData, calc, N, SIGMA);
+            return;
+        }
+        const dateStr = param.time;
+        const candle = param.seriesData.get(candleSeries);
+        const ema = param.seriesData.get(emaSeries);
+        const u1 = param.seriesData.get(up1);
+        const d1 = param.seriesData.get(dn1);
+        const u2 = param.seriesData.get(up2);
+        const d2 = param.seriesData.get(dn2);
+        
+        updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
+    });
+
     btn.innerText = "백테스트 실행 및 차트 그리기";
 }
 
@@ -706,7 +793,6 @@ async function runParameterSweep() {
         return;
     }
 
-    // 경우의 수(조합) 리스트 빌드
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
@@ -726,7 +812,6 @@ async function runParameterSweep() {
     let results = [];
     let currentIndex = 0;
 
-    // 비동기 청크 분할 연산
     async function executeChunk() {
         const chunkSize = 25; 
         const limit = Math.min(currentIndex + chunkSize, total);
@@ -770,7 +855,7 @@ async function runParameterSweep() {
     await executeChunk();
 }
 
-// 💡 [v9.2] 스윕 표 출력 및 동적 행 클릭 연계 시스템
+// 💡 [v9.3] 스윕 표 출력 및 동적 행 클릭 연계 시스템
 function renderSweepTable(results, ticker) {
     const tableBody = document.getElementById('sweepTableBody');
     tableBody.innerHTML = '';
@@ -798,7 +883,6 @@ function renderSweepTable(results, ticker) {
             <td style="color:#3498db;">${res.sellCount}회</td>
         `;
 
-        // 클릭 연동 스크롤 이동
         row.onclick = function() {
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
