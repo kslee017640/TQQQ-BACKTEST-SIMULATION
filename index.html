@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v7.7</title>
+    <title>퀀트 백테스터 Pro v7.8</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
@@ -64,7 +64,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.7</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.8</span></h1>
         <button class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -72,7 +72,7 @@
         <div class="input-row">
             <div class="input-group">
                 <label for="ticker">투자 종목</label>
-                <select id="ticker" onchange="updateDefaultDates()">
+                <select id="ticker">
                     <option value="TQQQ">TQQQ</option>
                     <option value="SOXL">SOXL</option>
                     <option value="AAPL">AAPL</option>
@@ -135,7 +135,7 @@ function toggleTheme() {
 
 function updateChartTheme(isDark) {
     chartInstance.applyOptions({
-        layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333333' },
+        layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
         grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } }
     });
 }
@@ -166,6 +166,7 @@ function setQuickDate(years) {
     }
 }
 
+// 💡 [핵심 수정] 데이터 인식 오류를 100% 차단하기 위한 정밀 파싱 로직
 async function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     const response = await fetch(url);
@@ -173,33 +174,57 @@ async function fetchAndParseData(ticker, startDate, endDate) {
     
     return new Promise((resolve) => {
         Papa.parse(csvText, {
-            header: true,
+            header: false, // 제목 줄에 보이지 않는 기호가 있을 수 있어 헤더 기능을 끄고 직접 잡습니다.
             skipEmptyLines: true,
             complete: function(results) {
+                let data = results.data;
+                if (data.length < 2) { resolve([]); return; }
+
                 let parsedData = [];
                 let start = new Date(startDate);
                 let end = new Date(endDate);
 
-                results.data.forEach(row => {
-                    let rowValues = Object.values(row);
-                    let rawDate = (row['날짜'] || row['Date'] || rowValues[0] || '').trim();
-                    if (!rawDate) return;
+                // 첫 줄(제목)에서 각각의 데이터가 몇 번째 칸에 있는지 찾습니다.
+                let header = data[0].map(h => h.trim().toLowerCase());
+                let idxDate = header.findIndex(h => h.includes('날짜') || h.includes('date'));
+                let idxClose = header.findIndex(h => h.includes('종가') || h.includes('close'));
+                let idxOpen = header.findIndex(h => h.includes('시가') || h.includes('open'));
+                let idxHigh = header.findIndex(h => h.includes('고가') || h.includes('high'));
+                let idxLow = header.findIndex(h => h.includes('저가') || h.includes('low'));
 
-                    // 💡 공백 제거 및 날짜 형식 정규화 (데이터 인식 오류 해결 핵심)
+                // 제목이 깨졌을 경우를 대비한 기본 인덱스 설정 (회원님의 TQQQ 시트 순서 기준)
+                if (idxDate === -1) idxDate = 0;
+                if (idxClose === -1) idxClose = 1;
+                if (idxOpen === -1) idxOpen = 2;
+                if (idxHigh === -1) idxHigh = 3;
+                if (idxLow === -1) idxLow = 4;
+
+                for (let i = 1; i < data.length; i++) {
+                    let row = data[i];
+                    let rawDate = (row[idxDate] || '').trim();
+                    if (!rawDate) continue;
+
+                    // 날짜 형식 정제 (2026- 05- 08 -> 2026-05-08)
                     let cleanDateStr = rawDate.replace(/\s+/g, '').replace(/[\.\/]/g, '-');
                     let rowDate = new Date(cleanDateStr);
 
                     if (rowDate >= start && rowDate <= end) {
-                        let close = parseFloat(String(row['종가'] || row['Close'] || rowValues[1] || 0).replace(/,/g, ''));
-                        let open = parseFloat(String(row['시가'] || row['Open'] || rowValues[2] || 0).replace(/,/g, ''));
-                        let high = parseFloat(String(row['고가'] || row['High'] || rowValues[3] || 0).replace(/,/g, ''));
-                        let low = parseFloat(String(row['저가'] || row['Low'] || rowValues[4] || 0).replace(/,/g, ''));
+                        let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
+                        let open = parseFloat(String(row[idxOpen] || 0).replace(/,/g, ''));
+                        let high = parseFloat(String(row[idxHigh] || 0).replace(/,/g, ''));
+                        let low = parseFloat(String(row[idxLow] || 0).replace(/,/g, ''));
 
                         if (!isNaN(close) && close > 0) {
-                            parsedData.push({ time: cleanDateStr.substring(0,10), open, high, low, close });
+                            parsedData.push({ 
+                                time: cleanDateStr.substring(0,10), 
+                                open: open || close, 
+                                high: high || close, 
+                                low: low || close, 
+                                close: close 
+                            });
                         }
                     }
-                });
+                }
                 parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
                 resolve(parsedData);
             }
@@ -227,7 +252,7 @@ let chartInstance = null;
 
 async function runBacktest() {
     const btn = document.querySelector('.main-btn');
-    btn.innerText = "계산 중...";
+    btn.innerText = "데이터 분석 중...";
     
     const ticker = document.getElementById('ticker').value;
     const N = parseInt(document.getElementById('n_days').value);
@@ -237,7 +262,7 @@ async function runBacktest() {
 
     const rawData = await fetchAndParseData(ticker, startDate, endDate);
     if (rawData.length === 0) {
-        alert("선택하신 기간의 데이터가 없습니다.");
+        alert("선택하신 기간의 데이터가 없습니다. (날짜 형식을 확인해주세요)");
         btn.innerText = "백테스트 실행하기";
         return;
     }
@@ -259,7 +284,7 @@ async function runBacktest() {
             lineUp1.push({ time: curDate, value: curEMA + SIGMA * curSD });
             lineDn1.push({ time: curDate, value: curEMA - SIGMA * curSD });
             lineUp2.push({ time: curDate, value: curEMA + 2 * SIGMA * curSD });
-            lineDn2.push({ time: currentDate = curDate, value: curEMA - 2 * SIGMA * curSD });
+            lineDn2.push({ time: curDate, value: curEMA - 2 * SIGMA * curSD });
 
             let buy = 0, sell = 0;
             if (curPrice < curEMA - 2 * SIGMA * curSD) buy = 3;
@@ -298,6 +323,7 @@ async function runBacktest() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     chartInstance = LightweightCharts.createChart(chartContainer, {
         layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
+        grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } },
         timeScale: { borderColor: '#555' }
     });
 
