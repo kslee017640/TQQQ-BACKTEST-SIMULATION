@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v7.9</title>
+    <title>퀀트 백테스터 Pro v8.1</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
@@ -37,7 +37,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.9</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v8.1</span></h1>
         <button class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
     <div class="card">
@@ -93,7 +93,7 @@ const csvUrls = {
 };
 window.onload = function() {
     const today = new Date().toISOString().split('T')[0]; 
-    document.getElementById('start_date').value = "2011-01-01";
+    document.getElementById('start_date').value = "2024-05-09";
     document.getElementById('end_date').value = today;
 };
 function setQuickDate(years) {
@@ -102,7 +102,7 @@ function setQuickDate(years) {
     else { end.setFullYear(end.getFullYear() - years); document.getElementById('start_date').value = end.toISOString().split('T')[0]; }
 }
 
-// 💡 [v7.9 핵심 수정] 데이터 누락 방지를 위한 초강력 파싱 엔진
+// 💡 [v8.1 핵심 수정] 공유해주신 시트 구조(B열 날짜, G열 종가)에 완벽 대응
 async function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
@@ -110,27 +110,30 @@ async function fetchAndParseData(ticker, startDate, endDate) {
         const csvText = await response.text();
         return new Promise((resolve) => {
             Papa.parse(csvText, {
-                header: false, // 제목 줄에 관계없이 칸 번호로 찾음
+                header: false,
                 skipEmptyLines: true,
                 complete: function(results) {
                     const data = results.data;
-                    if (!data || data.length < 2) { resolve([]); return; }
+                    if (!data || data.length < 5) { resolve([]); return; }
                     let parsedData = [];
                     let start = new Date(startDate);
                     let end = new Date(endDate);
-                    // 데이터 처리
-                    for (let i = 1; i < data.length; i++) {
+
+                    for (let i = 0; i < data.length; i++) {
                         let row = data[i];
-                        let rawDate = (row[0] || '').trim(); // 첫 번째 칸은 무조건 날짜
-                        if (!rawDate) continue;
+                        // 💡 공유된 시트 기준: B열(index 1)이 날짜, G열(index 6)이 종가
+                        let rawDate = (row[1] || '').trim(); 
+                        if (!rawDate || rawDate.includes('날짜') || rawDate.includes('Date')) continue;
+
                         let cleanDateStr = rawDate.replace(/\s+/g, '').replace(/[\.\/]/g, '-');
-                        if (cleanDateStr.length < 8) continue;
                         let rowDate = new Date(cleanDateStr);
+
                         if (rowDate >= start && rowDate <= end) {
-                            let close = parseFloat(String(row[1] || 0).replace(/,/g, '')); // 두 번째 칸은 종가
+                            // G열(6) 종가, C열(2) 시가, D열(3) 고가, E열(4) 저가
+                            let close = parseFloat(String(row[6] || 0).replace(/,/g, ''));
                             if (!isNaN(close) && close > 0) {
                                 parsedData.push({ 
-                                    time: cleanDateStr.substring(0,10), 
+                                    time: cleanDateStr, 
                                     open: parseFloat(String(row[2] || close).replace(/,/g, '')), 
                                     high: parseFloat(String(row[3] || close).replace(/,/g, '')), 
                                     low: parseFloat(String(row[4] || close).replace(/,/g, '')), 
@@ -144,7 +147,7 @@ async function fetchAndParseData(ticker, startDate, endDate) {
                 }
             });
         });
-    } catch (e) { alert("데이터 로딩 실패!"); return []; }
+    } catch (e) { return []; }
 }
 
 function calculateEMA(prices, n) {
@@ -170,7 +173,7 @@ async function runBacktest() {
     const endDate = document.getElementById('end_date').value;
 
     const rawData = await fetchAndParseData(ticker, startDate, endDate);
-    if (rawData.length === 0) { alert("데이터가 없습니다. 날짜를 확인해주세요."); btn.innerText = "백테스트 실행하기"; return; }
+    if (rawData.length === 0) { alert("데이터가 없습니다. 날짜와 시트 공개 설정을 확인해주세요."); btn.innerText = "백테스트 실행하기"; return; }
 
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
