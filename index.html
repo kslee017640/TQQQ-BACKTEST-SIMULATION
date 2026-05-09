@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v7.0</title>
+    <title>퀀트 백테스터 Pro v7.2</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
-    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" crossorigin="anonymous"></script>
     
     <style>
-        /* 💡 라이트 모드 (기본 색상) */
+        /* 라이트 모드 */
         :root {
             --primary-color: #4CAF50; 
             --bg-color: #f4f7f6;      
@@ -21,9 +22,9 @@
             --btn-bg: #e0e0e0;
         }
 
-        /* 💡 다크 모드 색상 (html 태그에 data-theme="dark"가 붙으면 이 색상으로 변신!) */
+        /* 💡 다크 모드 (버튼 색상을 차분한 진초록으로 변경했습니다!) */
         [data-theme="dark"] {
-            --primary-color: #2ecc71; /* 다크모드에선 좀 더 밝은 초록색 */
+            --primary-color: #2E7D32; /* 기존의 너무 밝은 색상에서 톤다운! */
             --bg-color: #121212;      
             --card-bg: #1e1e1e;       
             --text-main: #e0e0e0;     
@@ -39,7 +40,6 @@
         .header h1 { color: var(--primary-color); margin: 0; font-size: 24px; transition: color 0.3s; }
         .version-badge { font-size: 12px; background-color: var(--primary-color); color: white; padding: 2px 6px; border-radius: 4px; vertical-align: super; }
         
-        /* 다크모드 토글 버튼 꾸미기 */
         .theme-toggle { position: absolute; right: 0; top: 0; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .theme-toggle:hover { filter: brightness(0.9); }
 
@@ -64,7 +64,6 @@
         
         #chartArea { width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); transition: border-color 0.3s; }
         
-        /* 모바일 최적화 */
         @media (max-width: 600px) {
             .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; }
         }
@@ -74,9 +73,8 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.0</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v7.2</span></h1>
         <p style="color:var(--text-sub); font-size:14px; margin-bottom: 0;">TradingView 차트 + 볼린저 밴드 전략</p>
-        
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -142,42 +140,31 @@
 </div>
 
 <script>
-window.onerror = function(msg, url, line) { alert("코드 실행 오류!\n내용: " + msg + "\n줄: " + line); };
+window.onerror = function(msg, url, line) { 
+    if (msg.includes('Script error')) {
+        console.warn("보안/네트워크 지연이 발생했습니다 (무시됨).");
+        return true; 
+    }
+    alert("코드 실행 오류!\n내용: " + msg + "\n줄: " + line); 
+    return false;
+};
 
-// ==========================================
-// 💡 1. 다크모드 / 라이트모드 전환 기능
-// ==========================================
 function toggleTheme() {
     const htmlTag = document.documentElement;
     const currentTheme = htmlTag.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    
     htmlTag.setAttribute('data-theme', newTheme);
     document.getElementById('themeToggleBtn').innerText = newTheme === 'dark' ? '☀️ 라이트 모드' : '🌙 다크 모드';
-    
-    // 차트가 이미 그려져 있다면, 차트 테마도 즉시 업데이트!
-    if (chartInstance) {
-        updateChartTheme(newTheme === 'dark');
-    }
+    if (chartInstance) updateChartTheme(newTheme === 'dark');
 }
 
-// 💡 차트 배경색과 글자색을 모드에 맞게 바꿔주는 함수
 function updateChartTheme(isDark) {
     chartInstance.applyOptions({
-        layout: {
-            background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' },
-            textColor: isDark ? '#d1d4dc' : '#333333',
-        },
-        grid: {
-            vertLines: { color: isDark ? '#333333' : '#eeeeee' },
-            horzLines: { color: isDark ? '#333333' : '#eeeeee' },
-        }
+        layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333333' },
+        grid: { vertLines: { color: isDark ? '#333333' : '#eeeeee' }, horzLines: { color: isDark ? '#333333' : '#eeeeee' } }
     });
 }
 
-// ==========================================
-// 기존 데이터 및 백테스트 로직
-// ==========================================
 const csvUrls = {
     'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?output=csv', 
     'SOXL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfgwCHgJ6jBPcpe_oE0e1cifk-psBZtAtGW6r4fxyEDm7wDtJ1nFhMrN2TjC9nb7bfjIYOFEkoeSE-/pub?output=csv',
@@ -197,8 +184,6 @@ function updateDefaultDates() {
 
 window.onload = function() { 
     updateDefaultDates(); 
-    
-    // 사용자의 핸드폰/컴퓨터가 다크모드를 선호하면 처음부터 다크모드로 켜주기!
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         toggleTheme();
     }
@@ -217,51 +202,45 @@ function setQuickDate(years) {
     document.getElementById('start_date').value = end.toISOString().split('T')[0];
 }
 
-async function fetchAndParseData(ticker, startDate, endDate) {
-    const url = csvUrls[ticker] + "&_=" + new Date().getTime();
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("서버 응답 오류: " + response.status);
-        const csvText = await response.text();
-        
-        return new Promise((resolve, reject) => {
-            Papa.parse(csvText, {
-                header: true, skipEmptyLines: true,
-                complete: function(results) {
-                    try {
-                        let parsedData = []; 
-                        let start = new Date(startDate); 
-                        let end = new Date(endDate);     
+function fetchAndParseData(ticker, startDate, endDate) {
+    const url = csvUrls[ticker];
+    return new Promise((resolve, reject) => {
+        Papa.parse(url, {
+            download: true, 
+            header: true, 
+            skipEmptyLines: true,
+            complete: function(results) {
+                try {
+                    let parsedData = []; 
+                    let start = new Date(startDate); 
+                    let end = new Date(endDate);     
 
-                        results.data.forEach(row => {
-                            let rowValues = Object.values(row);
-                            let rawDate = row['날짜'] || row['Date'] || row['date'] || rowValues[0];
-                            if (!rawDate) return; 
-                            
-                            let cleanDateStr = String(rawDate).split(' ')[0].replace(/\s+/g, ''); 
-                            let rowDate = new Date(cleanDateStr);
+                    results.data.forEach(row => {
+                        let rowValues = Object.values(row);
+                        let rawDate = row['날짜'] || row['Date'] || row['date'] || rowValues[0];
+                        if (!rawDate) return; 
+                        
+                        let cleanDateStr = String(rawDate).split(' ')[0].replace(/\s+/g, ''); 
+                        let rowDate = new Date(cleanDateStr);
 
-                            if (rowDate >= start && rowDate <= end) {
-                                let open = parseFloat(String(row['시가'] || row['Open'] || rowValues[1] || 0).replace(/,/g, ''));
-                                let high = parseFloat(String(row['고가'] || row['High'] || rowValues[2] || 0).replace(/,/g, ''));
-                                let low = parseFloat(String(row['저가'] || row['Low'] || rowValues[3] || 0).replace(/,/g, ''));
-                                let close = parseFloat(String(row['종가'] || row['Close'] || rowValues[4] || 0).replace(/,/g, ''));
+                        if (rowDate >= start && rowDate <= end) {
+                            let open = parseFloat(String(row['시가'] || row['Open'] || rowValues[1] || 0).replace(/,/g, ''));
+                            let high = parseFloat(String(row['고가'] || row['High'] || rowValues[2] || 0).replace(/,/g, ''));
+                            let low = parseFloat(String(row['저가'] || row['Low'] || rowValues[3] || 0).replace(/,/g, ''));
+                            let close = parseFloat(String(row['종가'] || row['Close'] || rowValues[4] || 0).replace(/,/g, ''));
 
-                                if (!isNaN(close) && close > 0) {
-                                    parsedData.push({ time: cleanDateStr, open: open, high: high, low: low, close: close });
-                                }
+                            if (!isNaN(close) && close > 0) {
+                                parsedData.push({ time: cleanDateStr, open: open, high: high, low: low, close: close });
                             }
-                        });
-                        parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
-                        resolve(parsedData); 
-                    } catch (err) { reject("데이터 분류 오류: " + err.message); }
-                },
-                error: function() { reject("CSV 파일을 읽지 못했어요!"); }
-            });
+                        }
+                    });
+                    parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
+                    resolve(parsedData); 
+                } catch (err) { reject("데이터를 정리하다가 문제가 생겼어요: " + err.message); }
+            },
+            error: function(err) { reject("데이터를 다운로드할 수 없습니다. 구글 시트의 [웹에 게시] 설정을 꼭 확인해주세요!"); }
         });
-    } catch (err) {
-        throw new Error("다운로드 실패!\n구글 시트의 [웹에 게시] 설정을 확인해주세요.");
-    }
+    });
 }
 
 function calculateEMA(prices, n) {
@@ -286,7 +265,7 @@ let chartInstance = null;
 async function runBacktest() {
     const btn = document.querySelector('.main-btn');
     try {
-        btn.innerText = "데이터 로딩 중...";
+        btn.innerText = "데이터 불러오는 중...";
         const ticker = document.getElementById('ticker').value; 
         const N = parseInt(document.getElementById('n_days').value); 
         const SIGMA = parseFloat(document.getElementById('sigma').value); 
@@ -294,7 +273,7 @@ async function runBacktest() {
         const endDate = document.getElementById('end_date').value; 
 
         const rawData = await fetchAndParseData(ticker, startDate, endDate);
-        if (rawData.length === 0) { alert("데이터가 없습니다!"); btn.innerText = "백테스트 실행하기"; return; }
+        if (rawData.length === 0) { alert("해당 기간의 데이터가 없습니다!"); btn.innerText = "백테스트 실행하기"; return; }
 
         btn.innerText = "시뮬레이션 중...";
         const closePrices = rawData.map(d => d.close); 
@@ -333,19 +312,13 @@ async function runBacktest() {
                 else { totalInvested += (cost - cash); cash = 0; } 
                 shares += buyShares; 
                 
-                tradeMarkers.push({ 
-                    time: currentDate, position: 'belowBar', color: '#e74c3c', 
-                    shape: 'circle', text: `매수 ${buyShares}주` 
-                });
+                tradeMarkers.push({ time: currentDate, position: 'belowBar', color: '#e74c3c', shape: 'circle', text: `매수 ${buyShares}주` });
             }
             if (sellShares > 0 && shares > 0) {
                 let actualSell = Math.min(shares, sellShares);
                 shares -= actualSell; cash += actualSell * currentPrice; 
                 
-                tradeMarkers.push({ 
-                    time: currentDate, position: 'aboveBar', color: '#3498db', 
-                    shape: 'circle', text: `매도 ${actualSell}주` 
-                });
+                tradeMarkers.push({ time: currentDate, position: 'aboveBar', color: '#3498db', shape: 'circle', text: `매도 ${actualSell}주` });
             }
         }
 
@@ -369,24 +342,16 @@ async function runBacktest() {
             chartInstance = null;
         }
 
-        // 차트를 생성할 때 현재 테마(다크 or 라이트)를 확인해서 알맞은 색상으로 그려줍니다.
         const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
         chartInstance = LightweightCharts.createChart(chartContainer, {
-            layout: { 
-                background: { type: 'solid', color: isDarkTheme ? '#1e1e1e' : '#ffffff' }, 
-                textColor: isDarkTheme ? '#d1d4dc' : '#333333' 
-            },
-            grid: { 
-                vertLines: { color: isDarkTheme ? '#333333' : '#eeeeee' }, 
-                horzLines: { color: isDarkTheme ? '#333333' : '#eeeeee' } 
-            },
+            layout: { background: { type: 'solid', color: isDarkTheme ? '#1e1e1e' : '#ffffff' }, textColor: isDarkTheme ? '#d1d4dc' : '#333333' },
+            grid: { vertLines: { color: isDarkTheme ? '#333333' : '#eeeeee' }, horzLines: { color: isDarkTheme ? '#333333' : '#eeeeee' } },
             crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
             timeScale: { borderColor: '#555', timeVisible: false }
         });
 
         const candleSeries = chartInstance.addCandlestickSeries({ 
-            upColor: '#ef5350', downColor: '#26a69a', borderVisible: false,
-            wickUpColor: '#ef5350', wickDownColor: '#26a69a'
+            upColor: '#ef5350', downColor: '#26a69a', borderVisible: false, wickUpColor: '#ef5350', wickDownColor: '#26a69a'
         });
         candleSeries.setData(rawData); 
 
@@ -395,33 +360,26 @@ async function runBacktest() {
 
         const up1Series = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.8)', lineWidth: 1, lineStyle: 2, title: '+1σ' });
         up1Series.setData(lineUp1);
-        
         const dn1Series = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.8)', lineWidth: 1, lineStyle: 2, title: '-1σ' });
         dn1Series.setData(lineDn1);
-        
         const up2Series = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.4)', lineWidth: 1, lineStyle: 2, title: '+2σ' });
         up2Series.setData(lineUp2);
-        
         const dn2Series = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.4)', lineWidth: 1, lineStyle: 2, title: '-2σ' });
         dn2Series.setData(lineDn2);
 
-        if (tradeMarkers.length > 0) {
-            candleSeries.setMarkers(tradeMarkers);
-        }
+        if (tradeMarkers.length > 0) candleSeries.setMarkers(tradeMarkers);
 
         chartInstance.timeScale().fitContent();
         btn.innerText = "백테스트 실행하기";
 
     } catch (err) { 
-        alert(err.message); 
+        alert(err); 
         btn.innerText = "백테스트 실행하기"; 
     }
 }
 
 window.addEventListener('resize', () => {
-    if (chartInstance) {
-        chartInstance.resize(document.getElementById('chartArea').clientWidth, 500);
-    }
+    if (chartInstance) chartInstance.resize(document.getElementById('chartArea').clientWidth, 500);
 });
 </script>
 
