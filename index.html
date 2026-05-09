@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v8.4</title>
+    <title>퀀트 백테스터 Pro v9.0</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -41,6 +41,13 @@
         .theme-toggle { position: absolute; right: 0; top: 0; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .theme-toggle:hover { filter: brightness(0.9); }
 
+        /* 탭 스타일 */
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
+        .tab-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-sub); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; border-radius: 8px; }
+        .tab-btn.active { color: var(--primary-color); background-color: var(--btn-bg); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
         .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
         .input-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; } 
         .input-group { flex: 1; display: flex; flex-direction: column; min-width: 120px; } 
@@ -50,10 +57,19 @@
         
         .main-btn { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
         .main-btn:hover { filter: brightness(1.1); } 
-        
-        .quick-btn-group { display: flex; gap: 5px; margin-top: 5px; }
-        .quick-btn { flex: 1; padding: 8px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
-        .quick-btn:hover { filter: brightness(0.8); }
+        .main-btn:disabled { background-color: var(--border-color); color: var(--text-sub); cursor: not-allowed; }
+
+        /* 실시간 진행바 */
+        .progress-container { display: none; width: 100%; background-color: var(--btn-bg); border-radius: 8px; overflow: hidden; margin: 15px 0; height: 16px; position: relative; }
+        .progress-bar { width: 0%; height: 100%; background-color: var(--primary-color); transition: width 0.1s ease; }
+        .progress-text { font-size: 12px; color: var(--text-main); font-weight: bold; position: absolute; width: 100%; text-align: center; line-height: 16px; top: 0; left: 0; text-shadow: 0 0 2px #fff; }
+
+        /* 테이블 디자인 */
+        .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .sweep-table { width: 100%; border-collapse: collapse; text-align: center; font-size: 13px; min-width: 750px; }
+        .sweep-table th { background-color: var(--btn-bg); color: var(--text-main); font-weight: bold; padding: 12px 10px; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; }
+        .sweep-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; background-color: var(--card-bg); color: var(--text-main); }
+        .sweep-table tr:hover td { background-color: rgba(76, 175, 80, 0.15); }
 
         #resultArea { display: none; } 
         .result-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); } 
@@ -71,11 +87,12 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v8.4</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.0</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
     <div class="card">
+        <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">1단계: 기본 설정</h3>
         <div class="input-row">
             <div class="input-group">
                 <label for="ticker">투자 종목</label>
@@ -88,17 +105,6 @@
                 </select>
             </div>
             <div class="input-group">
-                <label for="n_days">기준일 (N일 EMA)</label>
-                <input type="number" id="n_days" value="120" min="5">
-            </div>
-            <div class="input-group">
-                <label for="sigma">표준편차 (SIGMA)</label>
-                <input type="number" id="sigma" value="1.5" step="0.1" min="0.1">
-            </div>
-        </div>
-        
-        <div class="input-row">
-            <div class="input-group">
                 <label for="start_date">시작 날짜</label>
                 <input type="date" id="start_date">
             </div>
@@ -107,20 +113,70 @@
                 <input type="date" id="end_date">
             </div>
         </div>
+    </div>
 
-        <div class="quick-btn-group" style="margin-bottom: 20px;">
-            <button type="button" class="quick-btn" onclick="setQuickDate(1)">1년</button>
-            <button type="button" class="quick-btn" onclick="setQuickDate(2)">2년</button>
-            <button type="button" class="quick-btn" onclick="setQuickDate(3)">3년</button>
-            <button type="button" class="quick-btn" onclick="setQuickDate(5)">5년</button>
-            <button type="button" class="quick-btn" onclick="setQuickDate('all')">전체</button>
+    <div class="card">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('single_tab')">🎯 단일 백테스트</button>
+            <button class="tab-btn" onclick="switchTab('sweep_tab')">⚡ 파라미터 스윕 (최적값 탐색)</button>
         </div>
 
-        <button class="main-btn" onclick="runBacktest()">백테스트 실행하기</button>
+        <div id="single_tab" class="tab-content active">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="n_days">기준일 (N일 EMA)</label>
+                    <input type="number" id="n_days" value="120" min="5">
+                </div>
+                <div class="input-group">
+                    <label for="sigma">표준편차 (SIGMA)</label>
+                    <input type="number" id="sigma" value="1.5" step="0.1" min="0.1">
+                </div>
+            </div>
+            <button class="main-btn" onclick="runSingleBacktest()">백테스트 실행 및 차트 그리기</button>
+        </div>
+
+        <div id="sweep_tab" class="tab-content">
+            <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">※ N 및 SIGMA 스윕 범위를 설정하세요.</h4>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>N 시작값</label>
+                    <input type="number" id="n_start" value="20" min="5">
+                </div>
+                <div class="input-group">
+                    <label>N 종료값</label>
+                    <input type="number" id="n_end" value="200" min="5">
+                </div>
+                <div class="input-group">
+                    <label>N 증가분(Step)</label>
+                    <input type="number" id="n_step" value="20" min="1">
+                </div>
+            </div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>SIGMA 시작값</label>
+                    <input type="number" id="s_start" value="0.5" step="0.1" min="0.1">
+                </div>
+                <div class="input-group">
+                    <label>SIGMA 종료값</label>
+                    <input type="number" id="s_end" value="3.0" step="0.1" min="0.1">
+                </div>
+                <div class="input-group">
+                    <label>SIGMA 증가분(Step)</label>
+                    <input type="number" id="s_step" value="0.1" step="0.1" min="0.05">
+                </div>
+            </div>
+            
+            <div id="progressContainer" class="progress-container">
+                <div id="progressBar" class="progress-bar"></div>
+                <div id="progressText" class="progress-text">스윕 준비 중...</div>
+            </div>
+
+            <button class="main-btn" id="sweepBtn" onclick="runParameterSweep()">파라미터 최적값 스윕 시작</button>
+        </div>
     </div>
 
     <div id="resultArea" class="card">
-        <h2 style="margin-top:0; font-size: 18px;">📊 시뮬레이션 결과</h2>
+        <h2 style="margin-top:0; font-size: 18px;">📊 단일 시뮬레이션 상세 결과</h2>
         <p id="tradeCountText" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">데이터 분석 결과</p>
 
         <div class="result-item"><span>총 투자 금액</span><span id="resInvested" class="result-value">$0.00</span></div>
@@ -130,11 +186,39 @@
         
         <div id="chartArea"></div>
     </div>
+
+    <div id="sweepResultsArea" class="card" style="display: none;">
+        <h2 style="margin-top:0; font-size: 18px;">🏆 파라미터 스윕 랭킹 (BEST → WORST)</h2>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 결과 표의 행을 클릭하면 해당 조건의 <b>단일 테스트 차트가 즉시 연동 및 렌더링</b>됩니다.</p>
+        
+        <div class="table-container">
+            <table class="sweep-table">
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>N (기준일)</th>
+                        <th>SIGMA</th>
+                        <th>총 투자 금액</th>
+                        <th>최종 평가 금액</th>
+                        <th>수익률</th>
+                        <th>MDD (최대 낙폭)</th>
+                        <th>총 거래</th>
+                        <th>매수</th>
+                        <th>매도</th>
+                        <th>보유 주식</th>
+                    </tr>
+                </thead>
+                <tbody id="sweepTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
 let chartInstance = null;
 
+// v8.4에서 확인된 웹에 게시(CSV)용 고정밀 주소 목록
 const csvUrls = {
     'TSLA': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroN1pjeuZtmup187y9YOgaVyDN1OtnJ5SUFKVxnnBjw2A4NaiYD-hkfvM0xkkPGZl525cMUAYPkxm/pub?gid=492154634&single=true&output=csv',
     'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?gid=218863667&single=true&output=csv',
@@ -142,6 +226,14 @@ const csvUrls = {
     'BTC': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYLvNYyPsN6KlvY-HBdm5NE4sRDoK_OW7qyxvYWfAbPbk35O2JS2eHIETTXoMQolWxNUmhmKSK_uej/pub?gid=1802082250&single=true&output=csv',
     'AAPL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQHZ3qHqu3e1_nVhc5pnSh68o2IIq3OmVH7McJgK8yBk7E8HvVhJ69IWvRKhyGbrqVwTeJJpQ9wifK/pub?gid=1162979478&single=true&output=csv'
 };
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    event.currentTarget.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+}
 
 function toggleTheme() {
     const htmlTag = document.documentElement;
@@ -176,13 +268,12 @@ function setQuickDate(years) {
     }
 }
 
-// 💡 [v8.4 데이터 수식 해결의 핵심] 초강력 통합 날짜 변환 파서
+// v8.4 강인한 날짜 포맷팅 파서
 function parseRobustDate(rawVal) {
     if (!rawVal) return null;
     let s = String(rawVal).trim();
     if (s === '' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return null;
 
-    // 작전 1: 만약 날짜가 엑셀/구글시트 일련번호 형태(예: 45421)로 깨져서 들어왔을 경우 변환
     let num = Number(s.replace(/,/g, ''));
     if (!isNaN(num) && num > 30000 && num < 60000) {
         let dateObj = new Date((num - 25569) * 86400 * 1000);
@@ -191,7 +282,6 @@ function parseRobustDate(rawVal) {
         }
     }
 
-    // 작전 2: "2024. 5. 9. 오후 4:00" 같은 한국식 포맷이나 띄어쓰기, 슬래시가 섞여 있을 때 숫자만 추출
     let match = s.match(/(\d{4})[\s\-\.\/]+(\d{1,2})[\s\-\.\/]+(\d{1,2})/);
     if (match) {
         let y = match[1];
@@ -200,7 +290,6 @@ function parseRobustDate(rawVal) {
         return `${y}-${m}-${d}`;
     }
 
-    // 작전 3: iOS/사파리에서 안전하게 인식할 수 있도록 슬래시(/) 변환 후 파싱 시도
     let cleanS = s.replace(/[\.\-]/g, '/').replace(/\s+/g, '');
     let dObj = new Date(cleanS);
     if (!isNaN(dObj.getTime())) {
@@ -214,7 +303,7 @@ function parseRobustDate(rawVal) {
     return null;
 }
 
-// 💡 [v8.4 데이터 수식 해결의 핵심] 수식 계산 지연 및 컬럼 자동 인덱스 추적
+// v8.4 구글 시트 수식/지연 완벽 대응 다운로드 파서
 async function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
@@ -224,7 +313,7 @@ async function fetchAndParseData(ticker, startDate, endDate) {
         
         return new Promise((resolve) => {
             Papa.parse(csvText, {
-                header: false, // 깨진 제목 행에 구애받지 않도록 false 고정
+                header: false,
                 skipEmptyLines: true,
                 complete: function(results) {
                     const data = results.data;
@@ -234,13 +323,12 @@ async function fetchAndParseData(ticker, startDate, endDate) {
                     let start = new Date(startDate + 'T00:00:00');
                     let end = new Date(endDate + 'T23:59:59');
 
-                    let idxDate = 1;  // 기본값 B열
-                    let idxClose = 6; // 기본값 G열
+                    let idxDate = 1;  
+                    let idxClose = 6; 
                     let idxOpen = 2;  
                     let idxHigh = 3;  
                     let idxLow = 4;   
 
-                    // 상단 20개 행을 정밀 스캔하여 진짜 헤더(제목 줄)의 위치와 인덱스 추출
                     for (let i = 0; i < Math.min(20, data.length); i++) {
                         let row = data[i] || [];
                         let hasDateHeader = row.some(cell => {
@@ -261,7 +349,6 @@ async function fetchAndParseData(ticker, startDate, endDate) {
                         }
                     }
 
-                    // 정밀 파싱 시작
                     for (let i = 0; i < data.length; i++) {
                         let row = data[i];
                         let rawDate = (row[idxDate] || '').trim();
@@ -269,8 +356,6 @@ async function fetchAndParseData(ticker, startDate, endDate) {
 
                         let lowerDate = rawDate.toLowerCase();
                         if (lowerDate.includes('날짜') || lowerDate.includes('date')) continue; 
-
-                        // 수식 로딩 등으로 인한 임시 에러 행 필터링
                         if (rawDate.includes('#') || rawDate.toLowerCase().includes('loading')) continue;
 
                         let cleanDateStr = parseRobustDate(rawDate);
@@ -292,7 +377,6 @@ async function fetchAndParseData(ticker, startDate, endDate) {
                             }
                         }
                     }
-
                     parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
                     resolve(parsedData);
                 }
@@ -317,31 +401,23 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-async function runBacktest() {
-    const btn = document.querySelector('.main-btn');
-    btn.innerText = "데이터 분석 중...";
-    
-    const ticker = document.getElementById('ticker').value;
-    const N = parseInt(document.getElementById('n_days').value);
-    const SIGMA = parseFloat(document.getElementById('sigma').value);
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-
-    const rawData = await fetchAndParseData(ticker, startDate, endDate);
-    if (rawData.length === 0) {
-        alert("해당 기간의 데이터를 분석할 수 없습니다.\n수식이 로딩 중이거나 선택 기간의 데이터가 비어 있는지 구글 시트를 확인해 주세요.");
-        btn.innerText = "백테스트 실행하기";
-        return;
-    }
-
+// 💡 [v9.0 핵심] 리스크/수익을 정확하게 역추적하는 백테스트 연산용 퓨어 함수 (MDD 연산 포함)
+function executeBacktestCore(rawData, N, SIGMA) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
+    
     let totalInvested = 0, cash = 0, shares = 0, tradeCount = 0;
+    let buyCount = 0, sellCount = 0;
+    
     let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [];
     let tradeMarkers = [];
 
+    let maxPortfolioValue = 0;
+    let maxDrawdown = 0;
+
     for (let i = 0; i < rawData.length; i++) {
         let curPrice = closePrices[i], curEMA = emaValues[i], curSD = calculateStdDev(closePrices, i, N), curDate = rawData[i].time;
+        
         if (i >= N) {
             lineEma.push({ time: curDate, value: curEMA });
             lineUp1.push({ time: curDate, value: curEMA + SIGMA * curSD });
@@ -359,12 +435,24 @@ async function runBacktest() {
             if (buy > 0) {
                 let cost = buy * curPrice;
                 if (cash >= cost) cash -= cost; else { totalInvested += (cost - cash); cash = 0; }
-                shares += buy; tradeCount++;
+                shares += buy; tradeCount++; buyCount++;
                 tradeMarkers.push({ time: curDate, position: 'belowBar', color: '#e74c3c', shape: 'arrowUp', text: '매수' });
             } else if (sell > 0 && shares > 0) {
                 let qty = Math.min(shares, sell);
-                shares -= qty; cash += qty * curPrice; tradeCount++;
+                shares -= qty; cash += qty * curPrice; tradeCount++; sellCount++;
                 tradeMarkers.push({ time: curDate, position: 'aboveBar', color: '#3498db', shape: 'arrowDown', text: '매도' });
+            }
+        }
+
+        // MDD (최대 낙폭) 리얼타임 트래킹
+        let currentPortfolio = cash + (shares * curPrice);
+        if (currentPortfolio > maxPortfolioValue) {
+            maxPortfolioValue = currentPortfolio;
+        }
+        if (maxPortfolioValue > 0) {
+            let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue;
+            if (drawdown > maxDrawdown) {
+                maxDrawdown = drawdown;
             }
         }
     }
@@ -372,14 +460,43 @@ async function runBacktest() {
     let finalValue = (shares * closePrices[closePrices.length - 1]) + cash;
     let yieldPer = totalInvested > 0 ? ((finalValue - totalInvested) / totalInvested) * 100 : 0;
 
-    document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 거래 ${tradeCount}회`;
-    document.getElementById('resInvested').innerText = "$" + totalInvested.toFixed(2);
-    document.getElementById('resValue').innerText = "$" + finalValue.toFixed(2);
-    document.getElementById('resShares').innerText = shares + " 주";
-    document.getElementById('resYield').innerText = (yieldPer > 0 ? "+" : "") + yieldPer.toFixed(2) + "%";
-    document.getElementById('resYield').style.color = yieldPer >= 0 ? "#ff4d4d" : "#3498db";
+    return {
+        totalInvested, finalValue, shares, yieldPer, tradeCount, buyCount, sellCount,
+        mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2
+    };
+}
+
+// 🎯 [단일 백테스트 실행기]
+async function runSingleBacktest() {
+    const btn = document.querySelector('#single_tab .main-btn');
+    btn.innerText = "데이터 분석 중...";
+    
+    const ticker = document.getElementById('ticker').value;
+    const N = parseInt(document.getElementById('n_days').value);
+    const SIGMA = parseFloat(document.getElementById('sigma').value);
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+
+    const rawData = await fetchAndParseData(ticker, startDate, endDate);
+    if (rawData.length === 0) {
+        alert("해당 기간의 데이터를 분석할 수 없습니다. 수식을 확인해 주세요.");
+        btn.innerText = "백테스트 실행 및 차트 그리기";
+        return;
+    }
+
+    const calc = executeBacktestCore(rawData, N, SIGMA);
+
+    // 단일 테스트 결과 UI 출력
+    document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
+    document.getElementById('resInvested').innerText = "$" + calc.totalInvested.toFixed(2);
+    document.getElementById('resValue').innerText = "$" + calc.finalValue.toFixed(2);
+    document.getElementById('resShares').innerText = calc.shares + " 주";
+    document.getElementById('resYield').innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%";
+    document.getElementById('resYield').style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
+    
     document.getElementById('resultArea').style.display = 'block';
 
+    // 차트 초기화 및 생성
     const chartContainer = document.getElementById('chartArea');
     chartContainer.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -394,21 +511,169 @@ async function runBacktest() {
     candleSeries.setData(rawData);
     
     const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2 });
-    emaSeries.setData(lineEma);
+    emaSeries.setData(calc.lineEma);
 
     const up1 = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.5)', lineWidth: 1, lineStyle: 2 });
-    up1.setData(lineUp1);
+    up1.setData(calc.lineUp1);
     const dn1 = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.5)', lineWidth: 1, lineStyle: 2 });
-    dn1.setData(lineDn1);
+    dn1.setData(calc.lineDn1);
 
     const up2 = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.3)', lineWidth: 1, lineStyle: 2 });
-    up2.setData(lineUp2);
+    up2.setData(calc.lineUp2);
     const dn2 = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.3)', lineWidth: 1, lineStyle: 2 });
-    dn2.setData(lineDn2);
+    dn2.setData(calc.lineDn2);
 
-    candleSeries.setMarkers(tradeMarkers);
+    candleSeries.setMarkers(calc.tradeMarkers);
     chartInstance.timeScale().fitContent();
-    btn.innerText = "백테스트 실행하기";
+    btn.innerText = "백테스트 실행 및 차트 그리기";
+}
+
+// ⚡ [파라미터 스윕 다차원 병렬 탐색기]
+async function runParameterSweep() {
+    const btn = document.getElementById('sweepBtn');
+    const progContainer = document.getElementById('progressContainer');
+    const progBar = document.getElementById('progressBar');
+    const progText = document.getElementById('progressText');
+
+    const ticker = document.getElementById('ticker').value;
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+
+    const nStart = parseInt(document.getElementById('n_start').value);
+    const nEnd = parseInt(document.getElementById('n_end').value);
+    const nStep = parseInt(document.getElementById('n_step').value);
+
+    const sStart = parseFloat(document.getElementById('s_start').value);
+    const sEnd = parseFloat(document.getElementById('s_end').value);
+    const sStep = parseFloat(document.getElementById('s_step').value);
+
+    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) {
+        alert("스윕 구간 범위를 올바르게 설정해주세요.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "데이터 로딩 중...";
+    
+    const rawData = await fetchAndParseData(ticker, startDate, endDate);
+    if (rawData.length === 0) {
+        alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
+        btn.disabled = false;
+        btn.innerText = "파라미터 최적값 스윕 시작";
+        return;
+    }
+
+    // 1. 경우의 수(조합) 리스트 사전 빌드
+    let combinations = [];
+    for (let n = nStart; n <= nEnd; n += nStep) {
+        for (let s = sStart; s <= sEnd; s += sStep) {
+            combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)) });
+        }
+    }
+
+    const total = combinations.length;
+    if (total === 0) {
+        alert("스윕 가능한 경우의 수가 존재하지 않습니다.");
+        btn.disabled = false;
+        btn.innerText = "파라미터 최적값 스윕 시작";
+        return;
+    }
+
+    progContainer.style.display = 'block';
+    let results = [];
+    let currentIndex = 0;
+
+    // 2. 비동기 청크 분할 기법으로 화면 꺼짐/멈춤 현상 차단하면서 실시간 스케줄링 연산
+    async function executeChunk() {
+        const chunkSize = 25; // 1프레임당 연산할 시뮬레이션 개수
+        const limit = Math.min(currentIndex + chunkSize, total);
+
+        for (; currentIndex < limit; currentIndex++) {
+            const comb = combinations[currentIndex];
+            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA);
+            results.push({
+                N: comb.N,
+                SIGMA: comb.SIGMA,
+                totalInvested: calc.totalInvested,
+                finalValue: calc.finalValue,
+                shares: calc.shares,
+                yieldPer: calc.yieldPer,
+                tradeCount: calc.tradeCount,
+                buyCount: calc.buyCount,
+                sellCount: calc.sellCount,
+                mdd: calc.mdd
+            });
+        }
+
+        const percentage = Math.round((currentIndex / total) * 100);
+        progBar.style.width = percentage + "%";
+        progText.innerText = `병렬 연산 가동 중... (${currentIndex} / ${total}) - ${percentage}%`;
+
+        if (currentIndex < total) {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            await executeChunk();
+        } else {
+            // 스윕 연산 완료 처리
+            btn.disabled = false;
+            btn.innerText = "파라미터 최적값 스윕 시작";
+            progContainer.style.display = 'none';
+
+            // 수익률 기준으로 내림차순 정렬 (BEST -> WORST)
+            results.sort((a, b) => b.yieldPer - a.yieldPer);
+            renderSweepTable(results);
+        }
+    }
+
+    await executeChunk();
+}
+
+// 💡 [v9.0 핵심] 스윕 완료 결과 리포트 출력 및 행 클릭 시 차트 즉시 로딩 설계
+function renderSweepTable(results) {
+    const tableBody = document.getElementById('sweepTableBody');
+    tableBody.innerHTML = '';
+
+    results.forEach((res, index) => {
+        const rank = index + 1;
+        const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
+        const yieldPrefix = res.yieldPer > 0 ? "+" : "";
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
+            <td style="font-weight:bold;">${res.N}일</td>
+            <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
+            <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td>$${res.finalValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="color:${yieldColor}; font-weight:bold;">${yieldPrefix}${res.yieldPer.toFixed(2)}%</td>
+            <td style="color:#e67e22; font-weight:bold;">-${res.mdd.toFixed(2)}%</td>
+            <td style="font-weight:bold;">${res.tradeCount}회</td>
+            <td style="color:#ff4d4d;">${res.buyCount}회</td>
+            <td style="color:#3498db;">${res.sellCount}회</td>
+            <td>${res.shares} 주</td>
+        `;
+
+        // 행 클릭 시 단일 테스트 탭으로 점프하며 차트를 즉시 그려주는 하이퍼링크 스크립트
+        row.onclick = function() {
+            document.getElementById('n_days').value = res.N;
+            document.getElementById('sigma').value = res.SIGMA;
+            
+            // 탭 활성화 변경
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector("[onclick=\"switchTab('single_tab')\"]").classList.add('active');
+            document.getElementById('single_tab').classList.add('active');
+            
+            // 차트 재생성
+            runSingleBacktest();
+            
+            // 시각적 확인을 위해 차트가 위치한 곳으로 자동 스크롤
+            document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        tableBody.appendChild(row);
+    });
+
+    document.getElementById('sweepResultsArea').style.display = 'block';
 }
 
 window.addEventListener('resize', () => { 
