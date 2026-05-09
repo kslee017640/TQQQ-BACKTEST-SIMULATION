@@ -7,7 +7,7 @@
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <style>
@@ -17,23 +17,24 @@
             --card-bg: #ffffff;       
             --text-main: #333333;     
             --text-sub: #777777;      
+            --border-color: #eee;
         }
         
         body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
         .container { max-width: 800px; margin: 0 auto; }
         .header { text-align: center; margin-bottom: 20px; }
         .header h1 { color: var(--primary-color); margin: 0; font-size: 24px; }
-        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border-color); }
         .input-row { display: flex; gap: 10px; margin-bottom: 15px; } 
         .input-group { flex: 1; display: flex; flex-direction: column; } 
-        .input-group label { font-size: 14px; margin-bottom: 5px; color: var(--text-sub); } 
+        .input-group label { font-size: 14px; margin-bottom: 5px; color: var(--text-sub); font-weight: bold; } 
         select, input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; }
         
         .main-btn { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
         .main-btn:hover { background-color: #45a049; } 
         
         .quick-btn-group { display: flex; gap: 5px; margin-top: 5px; }
-        .quick-btn { flex: 1; padding: 8px 0; background-color: #e0e0e0; color: #333; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.2s; }
+        .quick-btn { flex: 1; padding: 8px 0; background-color: #e0e0e0; color: #333; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.2s; font-weight: bold; }
         .quick-btn:hover { background-color: #d0d0d0; }
 
         #resultArea { display: none; } 
@@ -41,7 +42,8 @@
         .result-item:last-child { border-bottom: none; } 
         .result-value { font-weight: bold; color: var(--primary-color); } 
         
-        #chartArea { width: 100%; height: 600px; margin-top: 20px; }
+        /* 💡 차트가 그려질 공간을 어두운 테마로 미리 잡아줍니다 */
+        #chartArea { width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; background: #1e1e1e; border: 1px solid #333; }
     </style>
 </head>
 <body>
@@ -49,7 +51,7 @@
 <div class="container">
     <div class="header">
         <h1>📈 퀀트 백테스터</h1>
-        <p style="color:var(--text-sub); font-size:14px;">EMA & 볼린저 밴드 전략 + 실전 데이터</p>
+        <p style="color:var(--text-sub); font-size:14px;">TradingView 차트 + 볼린저 밴드 전략</p>
     </div>
 
     <div class="card">
@@ -106,19 +108,17 @@
         <div class="result-item"><span>총 투자 금액</span><span id="resInvested" class="result-value">$0.00</span></div>
         <div class="result-item"><span>최종 평가 금액</span><span id="resValue" class="result-value">$0.00</span></div>
         <div class="result-item"><span>보유 주식 수</span><span id="resShares" class="result-value">0 주</span></div>
-        <div class="result-item"><span>수익률</span><span id="resYield" class="result-value" style="color: #FF5722;">0.00%</span></div>
+        <div class="result-item"><span>수익률</span><span id="resYield" class="result-value" style="font-size: 18px;">0.00%</span></div>
         
-        <p style="font-size: 11px; color: #888; margin-top: 15px;">💡 화면에 두 손가락을 대고 꼬집듯 움직여(핀치 줌) 차트를 확대/축소하세요.</p>
+        <p style="font-size: 12px; color: #888; margin-top: 15px;">💡 화면을 드래그하여 이동하고, 두 손가락(또는 마우스 휠)으로 부드럽게 확대/축소하세요.</p>
+        
         <div id="chartArea"></div>
     </div>
 </div>
 
 <script>
-window.onerror = function(msg, url, line) {
-    alert("코드 실행 중 오류 발생!\n내용: " + msg + "\n줄: " + line);
-};
+window.onerror = function(msg, url, line) { alert("코드 실행 오류!\n내용: " + msg + "\n줄: " + line); };
 
-// 데이터 주소
 const csvUrls = {
     'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?output=csv', 
     'SOXL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfgwCHgJ6jBPcpe_oE0e1cifk-psBZtAtGW6r4fxyEDm7wDtJ1nFhMrN2TjC9nb7bfjIYOFEkoeSE-/pub?output=csv',
@@ -136,20 +136,16 @@ function updateDefaultDates() {
     document.getElementById('end_date').value = today;
 }
 
-window.onload = function() {
-    updateDefaultDates();
-};
+window.onload = function() { updateDefaultDates(); };
 
 function setQuickDate(years) {
     let endDateInput = document.getElementById('end_date');
     if (!endDateInput.value) endDateInput.value = new Date().toISOString().split('T')[0];
-    
     if (years === 'all') {
         const ticker = document.getElementById('ticker').value;
         document.getElementById('start_date').value = (ticker === 'BTC' ? "2016" : "2011") + "-01-01";
         return;
     }
-    
     let end = new Date(endDateInput.value);
     end.setFullYear(end.getFullYear() - years);
     document.getElementById('start_date').value = end.toISOString().split('T')[0];
@@ -159,9 +155,7 @@ function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker];
     return new Promise((resolve, reject) => {
         Papa.parse(url, {
-            download: true,
-            header: true,
-            skipEmptyLines: true,
+            download: true, header: true, skipEmptyLines: true,
             complete: function(results) {
                 try {
                     let parsedData = []; 
@@ -173,13 +167,7 @@ function fetchAndParseData(ticker, startDate, endDate) {
                         let rawDate = row['날짜'] || row['Date'] || row['date'] || rowValues[0];
                         if (!rawDate) return; 
                         
-                        // 💡 1. 구글 파이낸스의 시간 " 16:00:00" 같은 부분이 있으면 잘라냅니다.
-                        let rawStr = String(rawDate);
-                        if (rawStr.includes(':')) {
-                            rawStr = rawStr.split(' ')[0];
-                        }
-                        // 💡 2. "2026- 05- 08" 처럼 중간에 섞인 공백을 완전히 없앱니다.
-                        let cleanDateStr = rawStr.replace(/\s+/g, '');
+                        let cleanDateStr = String(rawDate).split(' ')[0].replace(/\s+/g, ''); 
                         let rowDate = new Date(cleanDateStr);
 
                         if (rowDate >= start && rowDate <= end) {
@@ -189,11 +177,13 @@ function fetchAndParseData(ticker, startDate, endDate) {
                             let close = parseFloat(String(row['종가'] || row['Close'] || rowValues[4] || 0).replace(/,/g, ''));
 
                             if (!isNaN(close) && close > 0) {
-                                parsedData.push({ date: cleanDateStr, open: open, high: high, low: low, close: close });
+                                // 💡 Lightweight Charts는 날짜를 'YYYY-MM-DD' 문자열로 바로 받습니다.
+                                parsedData.push({ time: cleanDateStr, open: open, high: high, low: low, close: close });
                             }
                         }
                     });
-                    parsedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    // 날짜 오름차순 정렬
+                    parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
                     resolve(parsedData); 
                 } catch (err) { reject("데이터 분석 오류: " + err.message); }
             },
@@ -219,6 +209,9 @@ function calculateStdDev(prices, currentIndex, n) {
     return Math.sqrt(variance);
 }
 
+// 전역 변수로 차트를 저장해둬서, 다시 누를 때마다 이전 차트를 지웁니다.
+let chartInstance = null;
+
 async function runBacktest() {
     const btn = document.querySelector('.main-btn');
     try {
@@ -237,24 +230,24 @@ async function runBacktest() {
         const emaValues = calculateEMA(closePrices, N); 
 
         let totalInvested = 0, cash = 0, shares = 0;
-        let buyDates = [], buyPrices = [], buyTexts = [];
-        let sellDates = [], sellPrices = [], sellTexts = [];
-        let upper1Data = [], lower1Data = [], upper2Data = [], lower2Data = [];
+        
+        // 차트에 그릴 선 데이터와 마커 데이터를 담을 배열
+        let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [];
+        let tradeMarkers = [];
 
         for (let i = 0; i < rawData.length; i++) {
             let currentPrice = closePrices[i]; 
             let currentEMA = emaValues[i];     
             let currentStdDev = calculateStdDev(closePrices, i, N); 
-            let currentDate = rawData[i].date; 
+            let currentDate = rawData[i].time; 
             
+            // N일 이후부터 선을 그리기 시작합니다.
             if(i >= N) {
-                upper1Data.push(currentEMA + (1 * SIGMA * currentStdDev)); 
-                lower1Data.push(currentEMA - (1 * SIGMA * currentStdDev)); 
-                upper2Data.push(currentEMA + (2 * SIGMA * currentStdDev)); 
-                lower2Data.push(currentEMA - (2 * SIGMA * currentStdDev)); 
-            } else {
-                upper1Data.push(null); lower1Data.push(null);
-                upper2Data.push(null); lower2Data.push(null);
+                lineEma.push({ time: currentDate, value: currentEMA });
+                lineUp1.push({ time: currentDate, value: currentEMA + (1 * SIGMA * currentStdDev) });
+                lineDn1.push({ time: currentDate, value: currentEMA - (1 * SIGMA * currentStdDev) });
+                lineUp2.push({ time: currentDate, value: currentEMA + (2 * SIGMA * currentStdDev) });
+                lineDn2.push({ time: currentDate, value: currentEMA - (2 * SIGMA * currentStdDev) });
             }
 
             if(i < N) continue;
@@ -271,14 +264,22 @@ async function runBacktest() {
                 if (cash >= cost) cash -= cost; 
                 else { totalInvested += (cost - cash); cash = 0; } 
                 shares += buyShares; 
-                buyDates.push(currentDate); buyPrices.push(currentPrice);
-                buyTexts.push(`매수: ${buyShares}주`);
+                
+                // 매수 마커 등록 (Lightweight Charts 전용 포맷)
+                tradeMarkers.push({ 
+                    time: currentDate, position: 'belowBar', color: '#e74c3c', 
+                    shape: 'circle', text: `매수 ${buyShares}주` 
+                });
             }
             if (sellShares > 0 && shares > 0) {
                 let actualSell = Math.min(shares, sellShares);
                 shares -= actualSell; cash += actualSell * currentPrice; 
-                sellDates.push(currentDate); sellPrices.push(currentPrice);
-                sellTexts.push(`매도: ${actualSell}주`);
+                
+                // 매도 마커 등록
+                tradeMarkers.push({ 
+                    time: currentDate, position: 'aboveBar', color: '#3498db', 
+                    shape: 'circle', text: `매도 ${actualSell}주` 
+                });
             }
         }
 
@@ -289,73 +290,83 @@ async function runBacktest() {
         document.getElementById('resValue').innerText = "$" + finalValue.toFixed(2);
         document.getElementById('resShares').innerText = shares + " 주";
         
-        // 💡 1. 수익률 양수/음수 부호 추가
+        // 수익률 +, - 부호 및 색상 처리
         let yieldStr = (yieldPercent > 0 ? "+" : "") + yieldPercent.toFixed(2) + "%";
         let yieldEl = document.getElementById('resYield');
         yieldEl.innerText = yieldStr;
-        yieldEl.style.color = yieldPercent >= 0 ? "#FF5722" : "#2196F3";
+        yieldEl.style.color = yieldPercent >= 0 ? "#ff4d4d" : "#3498db"; // 업비트 스타일 (상승 빨강, 하락 파랑)
         
         document.getElementById('resultArea').style.display = 'block';
 
-        // --- 📊 차트를 완전히 갈아엎었습니다 ---
-        const dates = rawData.map(d => d.date); 
+        // =========================================================
+        // 📊 Lightweight Charts (TradingView) 그리기 시작
+        // =========================================================
+        const chartContainer = document.getElementById('chartArea');
         
-        // 진짜 캔들스틱 (오픈/클로즈/하이/로우 모두 적용)
-        const traceCandle = { 
-            x: dates, close: closePrices, high: rawData.map(d=>d.high), low: rawData.map(d=>d.low), open: rawData.map(d=>d.open), 
-            type: 'candlestick', name: '실제 캔들',
-            increasing: {line: {color: '#EF5350'}}, 
-            decreasing: {line: {color: '#26A69A'}}
-        };
-        
-        // 기준선 EMA
-        const traceEMA = { x: dates, y: emaValues, type: 'scatter', mode: 'lines', name: 'EMA', line: {color: 'orange', width: 1.5} };
-        
-        // 볼린저 밴드 (+/- 1시그마, +/- 2시그마)
-        const bBands = [
-            {y: upper1Data, name: '+1σ', color: 'rgba(150,150,150,0.6)', dash: 'dot'},
-            {y: lower1Data, name: '-1σ', color: 'rgba(150,150,150,0.6)', dash: 'dot'},
-            {y: upper2Data, name: '+2σ', color: 'rgba(200,200,200,0.4)', dash: 'dash'},
-            {y: lower2Data, name: '-2σ', color: 'rgba(200,200,200,0.4)', dash: 'dash'}
-        ].map(b => ({ x: dates, y: b.y, type: 'scatter', mode: 'lines', name: b.name, line: {color: b.color, width: 1, dash: b.dash} }));
+        // 기존 차트가 있으면 지우고 새로 그립니다.
+        if (chartInstance) {
+            chartContainer.innerHTML = '';
+            chartInstance = null;
+        }
 
-        // 매수/매도 지점을 점으로 확실히 표시!
-        const traceBuy = { 
-            x: buyDates, y: buyPrices, type: 'scatter', mode: 'markers', name: '매수점',
-            text: buyTexts, hoverinfo: 'text+x+y',
-            marker: {color: '#D81B60', size: 10, symbol: 'circle', line: {color: 'white', width: 1}} 
-        };
-        const traceSell = { 
-            x: sellDates, y: sellPrices, type: 'scatter', mode: 'markers', name: '매도점',
-            text: sellTexts, hoverinfo: 'text+x+y',
-            marker: {color: '#1E88E5', size: 10, symbol: 'circle', line: {color: 'white', width: 1}} 
-        };
+        // 차트 생성 및 다크 테마 설정
+        chartInstance = LightweightCharts.createChart(chartContainer, {
+            layout: { background: { type: 'solid', color: '#1e1e1e' }, textColor: '#d1d4dc' },
+            grid: { vertLines: { color: '#333' }, horzLines: { color: '#333' } },
+            crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+            timeScale: { 
+                borderColor: '#555',
+                timeVisible: false, // 일봉이므로 시간은 안 보여줘도 됩니다.
+            }
+        });
 
-        const layout = { 
-            title: `${ticker} 실제 캔들 및 볼린저 밴드 차트`,
-            dragmode: 'zoom', // 💡 2. 줌(Zoom) 모드로 되돌려서 모바일 핀치 줌이 정상 작동하게 수정
-            xaxis: { 
-                autorange: true,
-                type: 'date',
-                // tickformat을 지워서 Plotly가 가장 예쁜 날짜 포맷을 자동으로 고르게 놔둡니다.
-                rangeslider: { visible: false } 
-            },
-            yaxis: { autorange: true, fixedrange: false },
-            margin: { l: 40, r: 10, t: 50, b: 50 },
-            showlegend: false
-        };
+        // 1. 진짜 캔들스틱 차트 추가
+        const candleSeries = chartInstance.addCandlestickSeries({ 
+            upColor: '#ef5350', downColor: '#26a69a', 
+            borderVisible: false,
+            wickUpColor: '#ef5350', wickDownColor: '#26a69a'
+        });
+        candleSeries.setData(rawData); // rawData에 이미 time, open, high, low, close가 모두 맞춰져 있습니다.
+
+        // 2. 기준선 EMA (노란색)
+        const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2, title: 'EMA' });
+        emaSeries.setData(lineEma);
+
+        // 3. 볼린저 밴드 선 추가 (LineStyle: 2는 점선(Dashed)을 의미합니다)
+        const up1Series = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.8)', lineWidth: 1, lineStyle: 2, title: '+1σ' });
+        up1Series.setData(lineUp1);
         
-        // 💡 설정 초기화로 부드러운 터치 지원
-        const config = {
-            responsive: true,
-            displayModeBar: false // 모바일에서 방해되는 상단 버튼바 삭제
-        };
+        const dn1Series = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.8)', lineWidth: 1, lineStyle: 2, title: '-1σ' });
+        dn1Series.setData(lineDn1);
+        
+        const up2Series = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.4)', lineWidth: 1, lineStyle: 2, title: '+2σ' });
+        up2Series.setData(lineUp2);
+        
+        const dn2Series = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.4)', lineWidth: 1, lineStyle: 2, title: '-2σ' });
+        dn2Series.setData(lineDn2);
 
-        Plotly.newPlot('chartArea', [traceCandle, traceEMA, ...bBands, traceBuy, traceSell], layout, config);
+        // 4. 매수/매도 점(마커) 추가
+        if (tradeMarkers.length > 0) {
+            candleSeries.setMarkers(tradeMarkers);
+        }
+
+        // 화면 꽉 차게 보기 좋게 맞춰주기
+        chartInstance.timeScale().fitContent();
+
         btn.innerText = "백테스트 실행하기";
 
-    } catch (err) { alert("오류: " + err); btn.innerText = "백테스트 실행하기"; }
+    } catch (err) { 
+        alert("오류: " + err); 
+        btn.innerText = "백테스트 실행하기"; 
+    }
 }
+
+// 창 크기가 바뀔 때 차트 크기도 맞춰주는 센스!
+window.addEventListener('resize', () => {
+    if (chartInstance) {
+        chartInstance.resize(document.getElementById('chartArea').clientWidth, 500);
+    }
+});
 </script>
 
 </body>
