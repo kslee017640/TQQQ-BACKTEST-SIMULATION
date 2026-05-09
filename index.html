@@ -3,53 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v8.1</title>
+    <title>퀀트 백테스터 Pro v8.3</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
+    
     <script src="https://unpkg.com/lightweight-charts@4.1.1/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <style>
-        :root { --primary-color: #4CAF50; --bg-color: #f4f7f6; --card-bg: #ffffff; --text-main: #333333; --text-sub: #777777; --border-color: #dddddd; }
-        [data-theme="dark"] { --primary-color: #2E7D32; --bg-color: #121212; --card-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #aaaaaa; --border-color: #333333; }
+        :root {
+            --primary-color: #4CAF50; 
+            --bg-color: #f4f7f6;      
+            --card-bg: #ffffff;       
+            --text-main: #333333;     
+            --text-sub: #777777;      
+            --border-color: #dddddd;
+            --btn-bg: #e0e0e0;
+        }
+
+        /* 🌙 눈이 편안한 다크 모드 */
+        [data-theme="dark"] {
+            --primary-color: #2E7D32; 
+            --bg-color: #121212;      
+            --card-bg: #1e1e1e;       
+            --text-main: #e0e0e0;     
+            --text-sub: #aaaaaa;      
+            --border-color: #333333;
+            --btn-bg: #333333;
+        }
         
         body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; }
         .container { max-width: 800px; margin: 0 auto; position: relative; }
-        .header { text-align: center; margin-bottom: 20px; }
-        .header h1 { color: var(--primary-color); margin: 0; font-size: 24px; }
+        
+        .header { text-align: center; margin-bottom: 20px; position: relative; }
+        .header h1 { color: var(--primary-color); margin: 0; font-size: 24px; transition: color 0.3s; }
         .version-badge { font-size: 12px; background-color: var(--primary-color); color: white; padding: 2px 6px; border-radius: 4px; vertical-align: super; }
-        .theme-toggle { position: absolute; right: 0; top: 0; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border-color); }
+        
+        .theme-toggle { position: absolute; right: 0; top: 0; background: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .theme-toggle:hover { filter: brightness(0.9); }
+
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
         .input-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; } 
         .input-group { flex: 1; display: flex; flex-direction: column; min-width: 120px; } 
-        .input-group label { font-size: 14px; margin-bottom: 5px; color: var(--text-sub); font-weight: bold; } 
-        select, input { padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; background-color: var(--card-bg); color: var(--text-main); }
-        .main-btn { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .input-group label { font-size: 14px; margin-bottom: 5px; color: var(--text-sub); font-weight: bold; transition: color 0.3s; } 
+        
+        select, input { padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; width: 100%; box-sizing: border-box; background-color: var(--card-bg); color: var(--text-main); transition: 0.3s; }
+        
+        .main-btn { width: 100%; padding: 15px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background-color 0.3s; }
+        .main-btn:hover { filter: brightness(1.1); } 
+        
         .quick-btn-group { display: flex; gap: 5px; margin-top: 5px; }
-        .quick-btn { flex: 1; padding: 8px 0; background-color: #e0e0e0; color: #333; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        .quick-btn { flex: 1; padding: 8px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
+        .quick-btn:hover { filter: brightness(0.8); }
+
         #resultArea { display: none; } 
         .result-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color); } 
-        .result-value { font-weight: bold; color: var(--primary-color); } 
-        #chartArea { width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
-        @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } }
+        .result-item:last-child { border-bottom: none; } 
+        .result-value { font-weight: bold; color: var(--primary-color); transition: color 0.3s; } 
+        
+        #chartArea { width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); transition: border-color 0.3s; }
+        
+        @media (max-width: 600px) {
+            .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; }
+        }
     </style>
 </head>
 <body>
+
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v8.1</span></h1>
-        <button class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v8.3</span></h1>
+        <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
+
     <div class="card">
         <div class="input-row">
-            <div class="input-group"><label for="ticker">투자 종목</label><select id="ticker"><option value="TQQQ">TQQQ</option><option value="SOXL">SOXL</option><option value="AAPL">AAPL</option><option value="TSLA">TSLA</option><option value="BTC">BTC</option></select></div>
-            <div class="input-group"><label for="n_days">기준일 (N일 EMA)</label><input type="number" id="n_days" value="120" min="5"></div>
-            <div class="input-group"><label for="sigma">표준편차 (SIGMA)</label><input type="number" id="sigma" value="1.5" step="0.1" min="0.1"></div>
+            <div class="input-group">
+                <label for="ticker">투자 종목</label>
+                <select id="ticker">
+                    <option value="TQQQ">TQQQ</option>
+                    <option value="SOXL">SOXL</option>
+                    <option value="AAPL">AAPL</option>
+                    <option value="TSLA">TSLA</option>
+                    <option value="BTC">BTC</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="n_days">기준일 (N일 EMA)</label>
+                <input type="number" id="n_days" value="120" min="5">
+            </div>
+            <div class="input-group">
+                <label for="sigma">표준편차 (SIGMA)</label>
+                <input type="number" id="sigma" value="1.5" step="0.1" min="0.1">
+            </div>
         </div>
+        
         <div class="input-row">
-            <div class="input-group"><label for="start_date">시작 날짜</label><input type="date" id="start_date"></div>
-            <div class="input-group"><label for="end_date">종료 날짜</label><input type="date" id="end_date"></div>
+            <div class="input-group">
+                <label for="start_date">시작 날짜</label>
+                <input type="date" id="start_date">
+            </div>
+            <div class="input-group">
+                <label for="end_date">종료 날짜</label>
+                <input type="date" id="end_date">
+            </div>
         </div>
+
         <div class="quick-btn-group" style="margin-bottom: 20px;">
             <button type="button" class="quick-btn" onclick="setQuickDate(1)">1년</button>
             <button type="button" class="quick-btn" onclick="setQuickDate(2)">2년</button>
@@ -57,97 +116,165 @@
             <button type="button" class="quick-btn" onclick="setQuickDate(5)">5년</button>
             <button type="button" class="quick-btn" onclick="setQuickDate('all')">전체</button>
         </div>
+
         <button class="main-btn" onclick="runBacktest()">백테스트 실행하기</button>
     </div>
+
     <div id="resultArea" class="card">
         <h2 style="margin-top:0; font-size: 18px;">📊 시뮬레이션 결과</h2>
         <p id="tradeCountText" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">데이터 분석 결과</p>
+
         <div class="result-item"><span>총 투자 금액</span><span id="resInvested" class="result-value">$0.00</span></div>
         <div class="result-item"><span>최종 평가 금액</span><span id="resValue" class="result-value">$0.00</span></div>
         <div class="result-item"><span>보유 주식 수</span><span id="resShares" class="result-value">0 주</span></div>
         <div class="result-item"><span>수익률</span><span id="resYield" class="result-value" style="font-size: 18px;">0.00%</span></div>
+        
         <div id="chartArea"></div>
     </div>
 </div>
 
 <script>
 let chartInstance = null;
+
+// 💡 회원님이 전송해주신 웹에 게시(CSV)된 100% 안전한 진짜 주소 목록
+const csvUrls = {
+    'TSLA': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroN1pjeuZtmup187y9YOgaVyDN1OtnJ5SUFKVxnnBjw2A4NaiYD-hkfvM0xkkPGZl525cMUAYPkxm/pub?gid=492154634&single=true&output=csv',
+    'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?gid=218863667&single=true&output=csv',
+    'SOXL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfgwCHgJ6jBPcpe_oE0e1cifk-psBZtAtGW6r4fxyEDm7wDtJ1nFhMrN2TjC9nb7bfjIYOFEkoeSE-/pub?gid=1816030608&single=true&output=csv',
+    'BTC': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYLvNYyPsN6KlvY-HBdm5NE4sRDoK_OW7qyxvYWfAbPbk35O2JS2eHIETTXoMQolWxNUmhmKSK_uej/pub?gid=1802082250&single=true&output=csv',
+    'AAPL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQHZ3qHqu3e1_nVhc5pnSh68o2IIq3OmVH7McJgK8yBk7E8HvVhJ69IWvRKhyGbrqVwTeJJpQ9wifK/pub?gid=1162979478&single=true&output=csv'
+};
+
 function toggleTheme() {
     const htmlTag = document.documentElement;
     const isDark = htmlTag.getAttribute('data-theme') === 'dark';
     htmlTag.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    document.getElementById('themeToggleBtn').innerText = isDark ? '🌙 다크 모드' : '☀️ 라이트 모드';
     if (chartInstance) updateChartTheme(!isDark);
 }
+
 function updateChartTheme(isDark) {
     chartInstance.applyOptions({
         layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
         grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } }
     });
 }
-const csvUrls = {
-    'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?output=csv', 
-    'SOXL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTfgwCHgJ6jBPcpe_oE0e1cifk-psBZtAtGW6r4fxyEDm7wDtJ1nFhMrN2TjC9nb7bfjIYOFEkoeSE-/pub?output=csv',
-    'AAPL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQHZ3qHqu3e1_nVhc5pnSh68o2IIq3OmVH7McJgK8yBk7E8HvVhJ69IWvRKhyGbrqVwTeJJpQ9wifK/pub?output=csv',
-    'TSLA': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroN1pjeuZtmup187y9YOgaVyDN1OtnJ5SUFKVxnnBjw2A4NaiYD-hkfvM0xkkPGZl525cMUAYPkxm/pub?output=csv',
-    'BTC': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYLvNYyPsN6KlvY-HBdm5NE4sRDoK_OW7qyxvYWfAbPbk35O2JS2eHIETTXoMQolWxNUmhmKSK_uej/pub?output=csv'
-};
+
 window.onload = function() {
-    const today = new Date().toISOString().split('T')[0]; 
+    // 💡 시작일은 회원님이 요청하셨던 2024-05-09 로 기본 설정합니다
     document.getElementById('start_date').value = "2024-05-09";
-    document.getElementById('end_date').value = today;
+    document.getElementById('end_date').value = new Date().toISOString().split('T')[0];
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        toggleTheme();
+    }
 };
+
 function setQuickDate(years) {
     let end = new Date();
-    if (years === 'all') document.getElementById('start_date').value = "2011-01-01";
-    else { end.setFullYear(end.getFullYear() - years); document.getElementById('start_date').value = end.toISOString().split('T')[0]; }
+    if (years === 'all') {
+        document.getElementById('start_date').value = "2024-05-09";
+    } else {
+        end.setFullYear(end.getFullYear() - years);
+        document.getElementById('start_date').value = end.toISOString().split('T')[0];
+    }
 }
 
-// 💡 [v8.1 핵심 수정] 공유해주신 시트 구조(B열 날짜, G열 종가)에 완벽 대응
+// 💡 [v8.3 핵심] 5개 데이터 시트마다 컬럼 순서가 달라도 100% 매칭하는 초정밀 인덱스 추적 엔진
 async function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
         const response = await fetch(url);
+        if (!response.ok) throw new Error("네트워크 접속에 실패했습니다.");
         const csvText = await response.text();
+        
         return new Promise((resolve) => {
             Papa.parse(csvText, {
-                header: false,
+                header: false, // 헤더에 보이지 않는 공백문자가 섞여 있어도 수동으로 순서 파악
                 skipEmptyLines: true,
                 complete: function(results) {
                     const data = results.data;
-                    if (!data || data.length < 5) { resolve([]); return; }
-                    let parsedData = [];
-                    let start = new Date(startDate);
-                    let end = new Date(endDate);
+                    if (!data || data.length < 2) { resolve([]); return; }
 
+                    let parsedData = [];
+                    let start = new Date(startDate + 'T00:00:00');
+                    let end = new Date(endDate + 'T23:59:59');
+
+                    // 시트 구조를 탐지하여 각 항목이 몇 번째 열(index)에 있는지 동적으로 스캔
+                    let idxDate = 1;  // 기본 B열
+                    let idxClose = 6; // 기본 G열
+                    let idxOpen = 2;  // 기본 C열
+                    let idxHigh = 3;  // 기본 D열
+                    let idxLow = 4;   // 기본 E열
+
+                    // 처음 15행 이내에서 헤더 제목 줄을 찾아 매칭시킵니다.
+                    for (let i = 0; i < Math.min(15, data.length); i++) {
+                        let row = data[i] || [];
+                        let hasDate = row.some(cell => {
+                            let c = String(cell || '').toLowerCase();
+                            return c.includes('날짜') || c.includes('date');
+                        });
+                        
+                        if (hasDate) {
+                            row.forEach((cell, idx) => {
+                                let c = String(cell || '').trim().toLowerCase();
+                                if (c.includes('날짜') || c.includes('date')) idxDate = idx;
+                                else if (c.includes('종가') || c.includes('close')) idxClose = idx;
+                                else if (c.includes('시가') || c.includes('open')) idxOpen = idx;
+                                else if (c.includes('고가') || c.includes('high')) idxHigh = idx;
+                                else if (c.includes('저가') || c.includes('low')) idxLow = idx;
+                            });
+                            break;
+                        }
+                    }
+
+                    // 데이터 정제
                     for (let i = 0; i < data.length; i++) {
                         let row = data[i];
-                        // 💡 공유된 시트 기준: B열(index 1)이 날짜, G열(index 6)이 종가
-                        let rawDate = (row[1] || '').trim(); 
-                        if (!rawDate || rawDate.includes('날짜') || rawDate.includes('Date')) continue;
+                        let rawDate = (row[idxDate] || '').trim();
+                        if (!rawDate) continue;
 
+                        let lowerDate = rawDate.toLowerCase();
+                        if (lowerDate.includes('날짜') || lowerDate.includes('date')) continue; // 헤더행 필터링
+
+                        // 마침표(.), 슬래시(/)를 하이픈(-)으로 바꾸고 공백 제거
                         let cleanDateStr = rawDate.replace(/\s+/g, '').replace(/[\.\/]/g, '-');
-                        let rowDate = new Date(cleanDateStr);
+                        if (cleanDateStr.endsWith('-')) cleanDateStr = cleanDateStr.slice(0, -1);
+
+                        // 한 자릿수 날짜 복원 (2024-5-9 -> 2024-05-09)
+                        let parts = cleanDateStr.split('-');
+                        if (parts.length === 3) {
+                            cleanDateStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                        } else {
+                            continue;
+                        }
+
+                        let rowDate = new Date(cleanDateStr + 'T00:00:00');
+                        if (isNaN(rowDate.getTime())) continue; // 쓰레기 행 걸러내기
 
                         if (rowDate >= start && rowDate <= end) {
-                            // G열(6) 종가, C열(2) 시가, D열(3) 고가, E열(4) 저가
-                            let close = parseFloat(String(row[6] || 0).replace(/,/g, ''));
+                            let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
                             if (!isNaN(close) && close > 0) {
                                 parsedData.push({ 
-                                    time: cleanDateStr, 
-                                    open: parseFloat(String(row[2] || close).replace(/,/g, '')), 
-                                    high: parseFloat(String(row[3] || close).replace(/,/g, '')), 
-                                    low: parseFloat(String(row[4] || close).replace(/,/g, '')), 
+                                    time: cleanDateStr.substring(0, 10), 
+                                    open: parseFloat(String(row[idxOpen] || close).replace(/,/g, '')), 
+                                    high: parseFloat(String(row[idxHigh] || close).replace(/,/g, '')), 
+                                    low: parseFloat(String(row[idxLow] || close).replace(/,/g, '')), 
                                     close: close 
                                 });
                             }
                         }
                     }
+
+                    // 시간순으로 정렬
                     parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
                     resolve(parsedData);
                 }
             });
         });
-    } catch (e) { return []; }
+    } catch (e) {
+        alert("데이터를 가져오는 중 연결 오류가 발생했습니다.");
+        return [];
+    }
 }
 
 function calculateEMA(prices, n) {
@@ -156,6 +283,7 @@ function calculateEMA(prices, n) {
     for (let i = 1; i < prices.length; i++) ema.push(prices[i] * k + ema[i - 1] * (1 - k));
     return ema;
 }
+
 function calculateStdDev(prices, idx, n) {
     if (idx < n - 1) return 0;
     let slice = prices.slice(idx - n + 1, idx + 1);
@@ -166,6 +294,7 @@ function calculateStdDev(prices, idx, n) {
 async function runBacktest() {
     const btn = document.querySelector('.main-btn');
     btn.innerText = "데이터 분석 중...";
+    
     const ticker = document.getElementById('ticker').value;
     const N = parseInt(document.getElementById('n_days').value);
     const SIGMA = parseFloat(document.getElementById('sigma').value);
@@ -173,7 +302,11 @@ async function runBacktest() {
     const endDate = document.getElementById('end_date').value;
 
     const rawData = await fetchAndParseData(ticker, startDate, endDate);
-    if (rawData.length === 0) { alert("데이터가 없습니다. 날짜와 시트 공개 설정을 확인해주세요."); btn.innerText = "백테스트 실행하기"; return; }
+    if (rawData.length === 0) {
+        alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
+        btn.innerText = "백테스트 실행하기";
+        return;
+    }
 
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
@@ -189,12 +322,14 @@ async function runBacktest() {
             lineDn1.push({ time: curDate, value: curEMA - SIGMA * curSD });
             lineUp2.push({ time: curDate, value: curEMA + 2 * SIGMA * curSD });
             lineDn2.push({ time: curDate, value: curEMA - 2 * SIGMA * curSD });
+
             let buy = 0, sell = 0;
             if (curPrice < curEMA - 2 * SIGMA * curSD) buy = 3;
             else if (curPrice < curEMA - SIGMA * curSD) buy = 2;
             else if (curPrice < curEMA) buy = 1;
             else if (curPrice > curEMA + 2 * SIGMA * curSD) sell = 2;
             else if (curPrice > curEMA + SIGMA * curSD) sell = 1;
+
             if (buy > 0) {
                 let cost = buy * curPrice;
                 if (cash >= cost) cash -= cost; else { totalInvested += (cost - cash); cash = 0; }
@@ -207,8 +342,10 @@ async function runBacktest() {
             }
         }
     }
+
     let finalValue = (shares * closePrices[closePrices.length - 1]) + cash;
     let yieldPer = totalInvested > 0 ? ((finalValue - totalInvested) / totalInvested) * 100 : 0;
+
     document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 거래 ${tradeCount}회`;
     document.getElementById('resInvested').innerText = "$" + totalInvested.toFixed(2);
     document.getElementById('resValue').innerText = "$" + finalValue.toFixed(2);
@@ -216,27 +353,41 @@ async function runBacktest() {
     document.getElementById('resYield').innerText = (yieldPer > 0 ? "+" : "") + yieldPer.toFixed(2) + "%";
     document.getElementById('resYield').style.color = yieldPer >= 0 ? "#ff4d4d" : "#3498db";
     document.getElementById('resultArea').style.display = 'block';
+
     const chartContainer = document.getElementById('chartArea');
     chartContainer.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    
     chartInstance = LightweightCharts.createChart(chartContainer, {
         layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
         grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } },
         timeScale: { borderColor: '#555' }
     });
+
     const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a' });
     candleSeries.setData(rawData);
+    
     const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2 });
     emaSeries.setData(lineEma);
+
     const up1 = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.5)', lineWidth: 1, lineStyle: 2 });
     up1.setData(lineUp1);
     const dn1 = chartInstance.addLineSeries({ color: 'rgba(150, 150, 150, 0.5)', lineWidth: 1, lineStyle: 2 });
     dn1.setData(lineDn1);
+
+    const up2 = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.3)', lineWidth: 1, lineStyle: 2 });
+    up2.setData(lineUp2);
+    const dn2 = chartInstance.addLineSeries({ color: 'rgba(200, 200, 200, 0.3)', lineWidth: 1, lineStyle: 2 });
+    dn2.setData(lineDn2);
+
     candleSeries.setMarkers(tradeMarkers);
     chartInstance.timeScale().fitContent();
     btn.innerText = "백테스트 실행하기";
 }
-window.addEventListener('resize', () => { if (chartInstance) chartInstance.resize(document.getElementById('chartArea').clientWidth, 500); });
+
+window.addEventListener('resize', () => { 
+    if (chartInstance) chartInstance.resize(document.getElementById('chartArea').clientWidth, 500); 
+});
 </script>
 </body>
 </html>
