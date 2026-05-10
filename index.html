@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.4</title>
+    <title>퀀트 백테스터 Pro v9.5</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -118,7 +118,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.4</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.5</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -137,6 +137,11 @@
                 </select>
             </div>
             
+            <div class="input-group">
+                <label for="init_cash">초기 보유현금 ($)</label>
+                <input type="number" id="init_cash" value="10000" min="100" step="1000">
+            </div>
+
             <div class="input-group" id="btc_unit_group" style="display: none;">
                 <label for="btc_unit">BTC 매매 단위 ($)</label>
                 <select id="btc_unit">
@@ -547,13 +552,13 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-// $10,000 고정 초기자금 기반의 정밀 트레이딩 및 보정 연산기
-function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
+// 💡 [v9.5] 입력창 값(initCash)을 주입받아 작동하는 고정밀 백테스트 코어 엔진
+function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
-    let totalInvested = 10000; 
-    let cash = 10000;          
+    let totalInvested = initCash; 
+    let cash = initCash;          
     let shares = 0;
     let tradeCount = 0;
     let buyCount = 0;
@@ -562,7 +567,7 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [];
     let tradeMarkers = [];
 
-    let maxPortfolioValue = 10000;
+    let maxPortfolioValue = initCash;
     let maxDrawdown = 0;
 
     for (let i = 0; i < rawData.length; i++) {
@@ -672,16 +677,16 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     };
 }
 
-// 💡 [다중 분할 연산 전용] 글로벌 지표 기반 특정 시간조각(Segment) 백테스트 고속 연산기
-function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2) {
-    let totalInvested = 10000; 
-    let cash = 10000;          
+// 💡 [v9.5] 다중 분할 전용 segment 연산 엔진도 입력창 값(initCash)을 주입받아 연산하도록 변경
+function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash) {
+    let totalInvested = initCash; 
+    let cash = initCash;          
     let shares = 0;
     let tradeCount = 0;
     let buyCount = 0;
     let sellCount = 0;
 
-    let maxPortfolioValue = 10000;
+    let maxPortfolioValue = initCash;
     let maxDrawdown = 0;
 
     const startMs = new Date(segStartStr + 'T00:00:00').getTime();
@@ -691,9 +696,8 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
         let curPrice = rawData[i].close, curDate = rawData[i].time;
         let curMs = new Date(curDate + 'T00:00:00').getTime();
         
-        // 해당 분할 구간 내부가 아니면 거래를 가상으로 차단 및 무시
         if (curMs < startMs || curMs > endMs) continue;
-        if (i < N) continue; // 최소한 N일 따뜻해져야 작동
+        if (i < N) continue; 
 
         let curEMA = globalEma[i];
         let curU1 = globalUp1[i];
@@ -769,7 +773,7 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
         }
     }
 
-    const finalPrice = rawData[rawData.length - 1].close; // 최종 마감가격 기준
+    const finalPrice = rawData[rawData.length - 1].close; 
     const finalSharesValue = shares * finalPrice;
     const finalTotalAssets = cash + finalSharesValue;
     const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
@@ -777,7 +781,6 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
     return { yieldPer, mdd: maxDrawdown * 100, tradeCount };
 }
 
-// 💡 [시간 분할 전용] 시작일부터 종료일까지 non-overlapping 1년 단위 분할 생성기
 function partitionPeriods(startDateStr, endDateStr) {
     let periods = [];
     let globalEnd = new Date(endDateStr + 'T00:00:00');
@@ -787,7 +790,7 @@ function partitionPeriods(startDateStr, endDateStr) {
     while (currEnd > globalStart) {
         let currStart = new Date(currEnd);
         currStart.setFullYear(currStart.getFullYear() - 1);
-        currStart.setDate(currStart.getDate() + 1); // 구간 연속성을 위한 보정
+        currStart.setDate(currStart.getDate() + 1); 
         
         if (currStart < globalStart) {
             currStart = new Date(globalStart);
@@ -863,6 +866,9 @@ async function runSingleBacktest() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    
+    // 💡 화면에서 입력한 초기 자금을 동적으로 주입
+    const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
 
     const rawData = await fetchAndParseData(ticker, startDate, endDate);
     if (rawData.length === 0) {
@@ -871,7 +877,7 @@ async function runSingleBacktest() {
         return;
     }
 
-    const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker);
+    const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash);
 
     const sharesText = ticker === 'BTC' || calc.shares % 1 !== 0 ? calc.shares.toFixed(6) + " 주" : calc.shares + " 주";
     document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
@@ -963,6 +969,9 @@ async function runParameterSweep() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    
+    // 💡 화면에서 입력한 초기 자금을 동적으로 주입
+    const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
 
     const nStart = parseInt(document.getElementById('n_start').value);
     const nEnd = parseInt(document.getElementById('n_end').value);
@@ -1013,7 +1022,7 @@ async function runParameterSweep() {
 
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
-            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker);
+            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash);
             results.push({
                 N: comb.N,
                 SIGMA: comb.SIGMA,
@@ -1097,7 +1106,7 @@ function renderSweepTable(results, ticker) {
     document.getElementById('sweepResultsArea').style.display = 'block';
 }
 
-// 💡 [v9.4 핵심] ⏳ 다중 기간 분할 스윕 (Robust Time Sweep) 가동 엔진
+// ⏳ [다중 기간 분할 스윕 가동 엔진]
 async function runRobustSweep() {
     const btn = document.getElementById('robustSweepBtn');
     const progContainer = document.getElementById('robustProgressContainer');
@@ -1108,6 +1117,9 @@ async function runRobustSweep() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    
+    // 💡 화면에서 입력한 초기 자금을 동적으로 주입
+    const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
 
     const nStart = parseInt(document.getElementById('rn_start').value);
     const nEnd = parseInt(document.getElementById('rn_end').value);
@@ -1133,7 +1145,6 @@ async function runRobustSweep() {
         return;
     }
 
-    // 1년 단위 분할 구간 배열 생성
     const periods = partitionPeriods(startDate, endDate);
     if (periods.length === 0) {
         alert("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요.");
@@ -1142,7 +1153,6 @@ async function runRobustSweep() {
         return;
     }
 
-    // 스윕 경우의 수 빌드
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
@@ -1162,15 +1172,13 @@ async function runRobustSweep() {
     let robustResults = [];
     let currentIndex = 0;
 
-    // 비동기 스케줄 청크 연산 (Non-blocking Loop)
     async function executeRobustChunk() {
-        const chunkSize = 15; // 1프레임당 처리량
+        const chunkSize = 15; 
         const limit = Math.min(currentIndex + chunkSize, total);
 
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
             
-            // 💡 [최적화 핵심] 글로벌 지표 사전 계산 (매번 루프 돌며 지표 재계산 방지)
             const prices = rawData.map(d => d.close);
             const globalEma = calculateEMA(prices, comb.N);
             
@@ -1184,7 +1192,6 @@ async function runRobustSweep() {
                 globalDn2.push(curEMA - 2 * comb.SIGMA * curSD);
             }
 
-            // 개별 분할 구간(연도별) 반복 시뮬레이션 돌려 통계 확보
             let periodYields = [];
             let periodMdds = [];
             let periodTrades = [];
@@ -1192,14 +1199,13 @@ async function runRobustSweep() {
             periods.forEach(p => {
                 const segResult = executeBacktestSegment(
                     rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, p.start, p.end,
-                    globalEma, globalUp1, globalDn1, globalUp2, globalDn2
+                    globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash
                 );
                 periodYields.push(segResult.yieldPer);
                 periodMdds.push(segResult.mdd);
                 periodTrades.push(segResult.tradeCount);
             });
 
-            // 연간 통합 통계 연산
             const avgYield = periodYields.reduce((a, b) => a + b, 0) / periodYields.length;
             const winRate = (periodYields.filter(y => y > 0).length / periodYields.length) * 100;
             const avgMdd = periodMdds.reduce((a, b) => a + b, 0) / periodMdds.length;
@@ -1231,7 +1237,6 @@ async function runRobustSweep() {
             btn.innerText = "다중 기간 분할 스윕 시작";
             progContainer.style.display = 'none';
 
-            // 평균 수익률 순으로 정렬 (BEST -> WORST)
             robustResults.sort((a, b) => b.avgYield - a.avgYield);
             renderRobustTable(robustResults, periods);
         }
@@ -1240,7 +1245,6 @@ async function runRobustSweep() {
     await executeRobustChunk();
 }
 
-// ⏳ 다중 분할 스윕 결과 렌더러
 function renderRobustTable(results, periods) {
     const tableBody = document.getElementById('robustTableBody');
     tableBody.innerHTML = '';
@@ -1266,7 +1270,6 @@ function renderRobustTable(results, periods) {
             <td>${res.avgTrades.toFixed(1)}회</td>
         `;
 
-        // 행 클릭 연계: 단일 탭으로 점프 후, 전체 기간에 대해 상세 시뮬레이션 및 차트 생성
         row.onclick = function() {
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
