@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.3</title>
+    <title>퀀트 백테스터 Pro v9.4</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -32,7 +32,7 @@
         }
         
         body { font-family: 'Pretendard', -apple-system, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; }
-        .container { max-width: 800px; margin: 0 auto; position: relative; }
+        .container { max-width: 850px; margin: 0 auto; position: relative; }
         
         .header { text-align: center; margin-bottom: 20px; position: relative; }
         .header h1 { color: var(--primary-color); margin: 0; font-size: 24px; transition: color 0.3s; }
@@ -43,7 +43,7 @@
 
         /* 탭 스타일 */
         .tabs { display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
-        .tab-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-sub); font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s; border-radius: 8px; }
+        .tab-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-sub); font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; border-radius: 8px; text-align: center; }
         .tab-btn.active { color: var(--primary-color); background-color: var(--btn-bg); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -80,11 +80,11 @@
         .result-item:last-child { border-bottom: none; } 
         .result-value { font-weight: bold; color: var(--primary-color); transition: color 0.3s; } 
         
-        /* 💡 차트 및 범례용 래퍼 스타일 */
+        /* 차트 및 범례용 래퍼 스타일 */
         .chart-wrapper { position: relative; width: 100%; height: 500px; margin-top: 20px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
         #chartArea { width: 100%; height: 100%; }
         
-        /* 💡 오버레이 스마트 범례 스타일 */
+        /* 오버레이 스마트 범례 스타일 */
         .chart-legend {
             position: absolute;
             top: 15px;
@@ -97,7 +97,7 @@
             padding: 10px;
             border-radius: 6px;
             border: 1px solid #dddddd;
-            pointer-events: none; /* 마우스 이벤트 클릭 스루 허용 */
+            pointer-events: none; 
             line-height: 1.5;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             transition: background-color 0.3s, color 0.3s, border-color 0.3s;
@@ -118,7 +118,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.3</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.4</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -179,7 +179,8 @@
     <div class="card">
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('single_tab')">🎯 단일 백테스트</button>
-            <button class="tab-btn" onclick="switchTab('sweep_tab')">⚡ 파라미터 스윕 (최적값 탐색)</button>
+            <button class="tab-btn" onclick="switchTab('sweep_tab')">⚡ 단일 기간 스윕</button>
+            <button class="tab-btn" onclick="switchTab('robust_tab')">⏳ 다중 기간 분할 스윕</button>
         </div>
 
         <div id="single_tab" class="tab-content active">
@@ -197,7 +198,7 @@
         </div>
 
         <div id="sweep_tab" class="tab-content">
-            <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">※ N 및 SIGMA 스윕 범위를 설정하세요.</h4>
+            <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">※ 단일 선택 기간에 대한 최적값 스윕 범위 설정</h4>
             <div class="input-row">
                 <div class="input-group">
                     <label>N 시작값</label>
@@ -232,7 +233,48 @@
                 <div id="progressText" class="progress-text">스윕 준비 중...</div>
             </div>
 
-            <button class="main-btn" id="sweepBtn" onclick="runParameterSweep()">파라미터 최적값 스윕 시작</button>
+            <button class="main-btn" id="sweepBtn" onclick="runParameterSweep()">단일 기간 최적값 스윕 시작</button>
+        </div>
+
+        <div id="robust_tab" class="tab-content">
+            <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">
+                ※ 선택한 날짜 구간을 <b>1년 단위 분할 기간들</b>로 분리하여 평균적인 시장 대응력을 순위로 나타냅니다.
+            </h4>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>N 시작값</label>
+                    <input type="number" id="rn_start" value="20" min="5">
+                </div>
+                <div class="input-group">
+                    <label>N 종료값</label>
+                    <input type="number" id="rn_end" value="200" min="5">
+                </div>
+                <div class="input-group">
+                    <label>N 증가분(Step)</label>
+                    <input type="number" id="rn_step" value="20" min="1">
+                </div>
+            </div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>SIGMA 시작값</label>
+                    <input type="number" id="rs_start" value="0.5" step="0.1" min="0.1">
+                </div>
+                <div class="input-group">
+                    <label>SIGMA 종료값</label>
+                    <input type="number" id="rs_end" value="3.0" step="0.1" min="0.1">
+                </div>
+                <div class="input-group">
+                    <label>SIGMA 증가분(Step)</label>
+                    <input type="number" id="rs_step" value="0.1" step="0.1" min="0.05">
+                </div>
+            </div>
+            
+            <div id="robustProgressContainer" class="progress-container">
+                <div id="robustProgressBar" class="progress-bar"></div>
+                <div id="robustProgressText" class="progress-text">다중 스윕 준비 중...</div>
+            </div>
+
+            <button class="main-btn" id="robustSweepBtn" onclick="runRobustSweep()">다중 기간 분할 스윕 시작</button>
         </div>
     </div>
 
@@ -252,13 +294,13 @@
             <div id="chartArea"></div>
         </div>
         <p style="font-size: 12px; color: var(--text-sub); margin-top: 8px; text-align: center;">
-            💡 <b>상하 가격 조작 팁:</b> 우측 가격 축 영역을 드래그하면 화면 고정(AutoScale)이 풀리며 상하 조작이 가능합니다.<br>다시 기본 크기로 맞추려면 차트를 <b>더블 클릭</b>하세요.
+            💡 <b>Y축 가격 스케일 조정 가이드:</b> 우측의 가격 눈금영역을 드래그하면 상하 스케일이 늘어나거나 줄어듭니다.<br>원래 크기 배율로 초기화하려면 차트 영역을 <b>더블 클릭</b>하세요.
         </p>
     </div>
 
     <div id="sweepResultsArea" class="card" style="display: none;">
-        <h2 style="margin-top:0; font-size: 18px;">🏆 파라미터 스윕 랭킹 (BEST → WORST)</h2>
-        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 결과 표의 행을 클릭하면 해당 조건의 <b>단일 테스트 차트가 즉시 연동 및 렌더링</b>됩니다.</p>
+        <h2 style="margin-top:0; font-size: 18px;">🏆 단일 기간 스윕 랭킹</h2>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 테스트 차트가 즉시 연동 및 렌더링</b>됩니다.</p>
         
         <div class="table-container">
             <table class="sweep-table">
@@ -279,8 +321,32 @@
                         <th>매도</th>
                     </tr>
                 </thead>
-                <tbody id="sweepTableBody">
-                    </tbody>
+                <tbody id="sweepTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="robustResultsArea" class="card" style="display: none;">
+        <h2 style="margin-top:0; font-size: 18px;">🏆 통계적 다중 기간 최적 랭킹 (BEST → WORST)</h2>
+        <p id="robustPeriodInfo" style="font-size: 13px; color: var(--primary-color); margin-bottom: 5px; font-weight: bold;"></p>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 연도마다 시장상황이 다릅니다. 다양한 시장을 이겨내는 가장 복원력이 뛰어난 최강의 파라미터 조합입니다.</p>
+        
+        <div class="table-container">
+            <table class="sweep-table">
+                <thead>
+                    <tr>
+                        <th>순위</th>
+                        <th>N (기준일)</th>
+                        <th>SIGMA</th>
+                        <th>평균 수익률</th>
+                        <th>연별 승률</th>
+                        <th>평균 MDD</th>
+                        <th>최악의 해 수익률</th>
+                        <th>최상의 해 수익률</th>
+                        <th>평균 거래 횟수</th>
+                    </tr>
+                </thead>
+                <tbody id="robustTableBody"></tbody>
             </table>
         </div>
     </div>
@@ -350,7 +416,6 @@ function setQuickDate(years) {
     }
 }
 
-// v8.4에서 검증된 정밀 날짜 파서
 function parseRobustDate(rawVal) {
     if (!rawVal) return null;
     let s = String(rawVal).trim();
@@ -385,7 +450,6 @@ function parseRobustDate(rawVal) {
     return null;
 }
 
-// v8.4 구글 연동 캐시 무시형 비동기 다운로더
 async function fetchAndParseData(ticker, startDate, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
@@ -488,8 +552,8 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
-    let totalInvested = 10000; // 초기자금 $10,000 고정
-    let cash = 10000;          // 가용 현금 $10,000 시작
+    let totalInvested = 10000; 
+    let cash = 10000;          
     let shares = 0;
     let tradeCount = 0;
     let buyCount = 0;
@@ -608,7 +672,142 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker) {
     };
 }
 
-// 💡 [v9.3] 마우스 크로스헤어 움직임에 대응하여 실시간으로 수치를 렌더링하는 전용 오버레이 범례 제어기
+// 💡 [다중 분할 연산 전용] 글로벌 지표 기반 특정 시간조각(Segment) 백테스트 고속 연산기
+function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2) {
+    let totalInvested = 10000; 
+    let cash = 10000;          
+    let shares = 0;
+    let tradeCount = 0;
+    let buyCount = 0;
+    let sellCount = 0;
+
+    let maxPortfolioValue = 10000;
+    let maxDrawdown = 0;
+
+    const startMs = new Date(segStartStr + 'T00:00:00').getTime();
+    const endMs = new Date(segEndStr + 'T23:59:59').getTime();
+
+    for (let i = 0; i < rawData.length; i++) {
+        let curPrice = rawData[i].close, curDate = rawData[i].time;
+        let curMs = new Date(curDate + 'T00:00:00').getTime();
+        
+        // 해당 분할 구간 내부가 아니면 거래를 가상으로 차단 및 무시
+        if (curMs < startMs || curMs > endMs) continue;
+        if (i < N) continue; // 최소한 N일 따뜻해져야 작동
+
+        let curEMA = globalEma[i];
+        let curU1 = globalUp1[i];
+        let curD1 = globalDn1[i];
+        let curU2 = globalUp2[i];
+        let curD2 = globalDn2[i];
+
+        let buySignal = 0, sellSignal = 0;
+        if (curPrice < curD2) buySignal = 3;
+        else if (curPrice < curD1) buySignal = 2;
+        else if (curPrice < curEMA) buySignal = 1;
+        else if (curPrice > curU2) sellSignal = 2;
+        else if (curPrice > curU1) sellSignal = 1;
+
+        if (buySignal > 0) {
+            let buySharesAmt = 0;
+            let cost = 0;
+
+            if (ticker === 'BTC') {
+                cost = buySignal * btcUnitValue;
+                buySharesAmt = cost / curPrice;
+            } else if (curPrice <= 10) {
+                cost = buySignal * 10;
+                buySharesAmt = cost / curPrice;
+            } else {
+                buySharesAmt = buySignal;
+                cost = buySharesAmt * curPrice;
+            }
+
+            if (cash >= cost) {
+                cash -= cost;
+            } else {
+                totalInvested += (cost - cash);
+                cash = 0;
+            }
+            shares += buySharesAmt;
+            tradeCount++;
+            buyCount++;
+        } else if (sellSignal > 0 && shares > 0) {
+            let sellSharesAmt = 0;
+            let revenue = 0;
+
+            if (ticker === 'BTC') {
+                let desiredValue = sellSignal * btcUnitValue;
+                sellSharesAmt = Math.min(shares, desiredValue / curPrice);
+                revenue = sellSharesAmt * curPrice;
+            } else if (curPrice <= 10) {
+                let desiredValue = sellSignal * 10;
+                sellSharesAmt = Math.min(shares, desiredValue / curPrice);
+                revenue = sellSharesAmt * curPrice;
+            } else {
+                sellSharesAmt = Math.min(shares, sellSignal);
+                revenue = sellSharesAmt * curPrice;
+            }
+
+            if (sellSharesAmt > 0) {
+                shares -= sellSharesAmt;
+                cash += revenue;
+                tradeCount++;
+                sellCount++;
+            }
+        }
+
+        let currentPortfolio = cash + (shares * curPrice);
+        if (currentPortfolio > maxPortfolioValue) {
+            maxPortfolioValue = currentPortfolio;
+        }
+        if (maxPortfolioValue > 0) {
+            let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue;
+            if (drawdown > maxDrawdown) {
+                maxDrawdown = drawdown;
+            }
+        }
+    }
+
+    const finalPrice = rawData[rawData.length - 1].close; // 최종 마감가격 기준
+    const finalSharesValue = shares * finalPrice;
+    const finalTotalAssets = cash + finalSharesValue;
+    const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
+
+    return { yieldPer, mdd: maxDrawdown * 100, tradeCount };
+}
+
+// 💡 [시간 분할 전용] 시작일부터 종료일까지 non-overlapping 1년 단위 분할 생성기
+function partitionPeriods(startDateStr, endDateStr) {
+    let periods = [];
+    let globalEnd = new Date(endDateStr + 'T00:00:00');
+    let globalStart = new Date(startDateStr + 'T00:00:00');
+    
+    let currEnd = new Date(globalEnd);
+    while (currEnd > globalStart) {
+        let currStart = new Date(currEnd);
+        currStart.setFullYear(currStart.getFullYear() - 1);
+        currStart.setDate(currStart.getDate() + 1); // 구간 연속성을 위한 보정
+        
+        if (currStart < globalStart) {
+            currStart = new Date(globalStart);
+        }
+        
+        if (currStart >= currEnd) break;
+        
+        periods.push({
+            start: currStart.toISOString().split('T')[0],
+            end: currEnd.toISOString().split('T')[0],
+            label: `${currStart.getFullYear()}~${currEnd.getFullYear()}`
+        });
+        
+        let prevEnd = new Date(currStart);
+        prevEnd.setDate(prevEnd.getDate() - 1);
+        currEnd = prevEnd;
+    }
+    return periods;
+}
+
 function updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA) {
     const legendEl = document.getElementById('chartLegend');
     if (!legendEl) return;
@@ -687,31 +886,29 @@ async function runSingleBacktest() {
     
     document.getElementById('resultArea').style.display = 'block';
 
-    // 차트 초기화 및 생성
     const chartContainer = document.getElementById('chartArea');
     chartContainer.innerHTML = '';
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     
-    // 💡 [v9.3 피드백 수렴] 가격축 및 차트 영역의 상하 스크롤/줌 드래그 동작 극대화 설계
     chartInstance = LightweightCharts.createChart(chartContainer, {
         layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
         grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } },
         rightPriceScale: {
             autoScale: true,       
             scaleMargins: { top: 0.1, bottom: 0.1 },
-            axisPressedMouseMove: true, // Y축 영역 드래그를 통한 스케일 줌 활성화
+            axisPressedMouseMove: true, 
         },
         handleScale: {
             mouseWheel: true,
-            pinch: true,           // 터치 줌 가동
-            axisPressedMouseMove: { time: true, price: true }, // 차트 영역 축 마우스 드래그 줌
-            axisDoubleClickReset: { time: true, price: true }  // 더블 클릭 리셋 완벽 활성화
+            pinch: true,           
+            axisPressedMouseMove: { time: true, price: true }, 
+            axisDoubleClickReset: { time: true, price: true }  
         },
         handleScroll: {
             mouseWheel: true,
             pressedMouseMove: true,
             horzTouchDrag: true,
-            vertTouchDrag: true,   // 모바일 수직 쓸어내리기 활성화
+            vertTouchDrag: true,   
         },
         timeScale: { borderColor: '#555' }
     });
@@ -719,24 +916,22 @@ async function runSingleBacktest() {
     const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a' });
     candleSeries.setData(rawData);
     
-    // 💡 [v9.3 피드백 수렴] EMA 및 Bollinger 시그마선 실선화(lineWidth: 2) 및 개별 고대비 색상 매핑
     const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2, title: 'EMA' });
     emaSeries.setData(calc.lineEma);
 
-    const up1 = chartInstance.addLineSeries({ color: '#2ecc71', lineWidth: 2, title: '+1σ' }); // 초록 실선 2px
+    const up1 = chartInstance.addLineSeries({ color: '#2ecc71', lineWidth: 2, title: '+1σ' }); 
     up1.setData(calc.lineUp1);
-    const dn1 = chartInstance.addLineSeries({ color: '#3498db', lineWidth: 2, title: '-1σ' }); // 파랑 실선 2px
+    const dn1 = chartInstance.addLineSeries({ color: '#3498db', lineWidth: 2, title: '-1σ' }); 
     dn1.setData(calc.lineDn1);
 
-    const up2 = chartInstance.addLineSeries({ color: '#e67e22', lineWidth: 2, title: '+2σ' }); // 주황 실선 2px
+    const up2 = chartInstance.addLineSeries({ color: '#e67e22', lineWidth: 2, title: '+2σ' }); 
     up2.setData(calc.lineUp2);
-    const dn2 = chartInstance.addLineSeries({ color: '#9b59b6', lineWidth: 2, title: '-2σ' }); // 보라 실선 2px
+    const dn2 = chartInstance.addLineSeries({ color: '#9b59b6', lineWidth: 2, title: '-2σ' }); 
     dn2.setData(calc.lineDn2);
 
     candleSeries.setMarkers(calc.tradeMarkers);
     chartInstance.timeScale().fitContent();
 
-    // 💡 범례 초기 바인딩 및 실시간 오버레이 업데이트 구독 등록
     showDefaultLegend(rawData, calc, N, SIGMA);
     chartInstance.subscribeCrosshairMove(param => {
         if (!param || !param.time || param.point === undefined || param.point.x < 0 || param.point.y < 0) {
@@ -757,7 +952,7 @@ async function runSingleBacktest() {
     btn.innerText = "백테스트 실행 및 차트 그리기";
 }
 
-// ⚡ [파라미터 스윕 다차원 병렬 탐색기]
+// ⚡ [단일 기간 최적화 스윕 엔진]
 async function runParameterSweep() {
     const btn = document.getElementById('sweepBtn');
     const progContainer = document.getElementById('progressContainer');
@@ -789,7 +984,7 @@ async function runParameterSweep() {
     if (rawData.length === 0) {
         alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
         btn.disabled = false;
-        btn.innerText = "파라미터 최적값 스윕 시작";
+        btn.innerText = "단일 기간 최적값 스윕 시작";
         return;
     }
 
@@ -804,7 +999,7 @@ async function runParameterSweep() {
     if (total === 0) {
         alert("스윕 가능한 경우의 수가 존재하지 않습니다.");
         btn.disabled = false;
-        btn.innerText = "파라미터 최적값 스윕 시작";
+        btn.innerText = "단일 기간 최적값 스윕 시작";
         return;
     }
 
@@ -844,7 +1039,7 @@ async function runParameterSweep() {
             await executeChunk();
         } else {
             btn.disabled = false;
-            btn.innerText = "파라미터 최적값 스윕 시작";
+            btn.innerText = "단일 기간 최적값 스윕 시작";
             progContainer.style.display = 'none';
 
             results.sort((a, b) => b.yieldPer - a.yieldPer);
@@ -855,7 +1050,6 @@ async function runParameterSweep() {
     await executeChunk();
 }
 
-// 💡 [v9.3] 스윕 표 출력 및 동적 행 클릭 연계 시스템
 function renderSweepTable(results, ticker) {
     const tableBody = document.getElementById('sweepTableBody');
     tableBody.innerHTML = '';
@@ -901,6 +1095,196 @@ function renderSweepTable(results, ticker) {
     });
 
     document.getElementById('sweepResultsArea').style.display = 'block';
+}
+
+// 💡 [v9.4 핵심] ⏳ 다중 기간 분할 스윕 (Robust Time Sweep) 가동 엔진
+async function runRobustSweep() {
+    const btn = document.getElementById('robustSweepBtn');
+    const progContainer = document.getElementById('robustProgressContainer');
+    const progBar = document.getElementById('robustProgressBar');
+    const progText = document.getElementById('robustProgressText');
+
+    const ticker = document.getElementById('ticker').value;
+    const startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
+    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+
+    const nStart = parseInt(document.getElementById('rn_start').value);
+    const nEnd = parseInt(document.getElementById('rn_end').value);
+    const nStep = parseInt(document.getElementById('rn_step').value);
+
+    const sStart = parseFloat(document.getElementById('rs_start').value);
+    const sEnd = parseFloat(document.getElementById('rs_end').value);
+    const sStep = parseFloat(document.getElementById('rs_step').value);
+
+    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) {
+        alert("다중 스윕 구간 범위를 올바르게 설정해주세요.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "전체 데이터 파싱 중...";
+    
+    const rawData = await fetchAndParseData(ticker, startDate, endDate);
+    if (rawData.length === 0) {
+        alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
+        btn.disabled = false;
+        btn.innerText = "다중 기간 분할 스윕 시작";
+        return;
+    }
+
+    // 1년 단위 분할 구간 배열 생성
+    const periods = partitionPeriods(startDate, endDate);
+    if (periods.length === 0) {
+        alert("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요.");
+        btn.disabled = false;
+        btn.innerText = "다중 기간 분할 스윕 시작";
+        return;
+    }
+
+    // 스윕 경우의 수 빌드
+    let combinations = [];
+    for (let n = nStart; n <= nEnd; n += nStep) {
+        for (let s = sStart; s <= sEnd; s += sStep) {
+            combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)) });
+        }
+    }
+
+    const total = combinations.length;
+    if (total === 0) {
+        alert("다중 스윕 가능한 경우의 수가 존재하지 않습니다.");
+        btn.disabled = false;
+        btn.innerText = "다중 기간 분할 스윕 시작";
+        return;
+    }
+
+    progContainer.style.display = 'block';
+    let robustResults = [];
+    let currentIndex = 0;
+
+    // 비동기 스케줄 청크 연산 (Non-blocking Loop)
+    async function executeRobustChunk() {
+        const chunkSize = 15; // 1프레임당 처리량
+        const limit = Math.min(currentIndex + chunkSize, total);
+
+        for (; currentIndex < limit; currentIndex++) {
+            const comb = combinations[currentIndex];
+            
+            // 💡 [최적화 핵심] 글로벌 지표 사전 계산 (매번 루프 돌며 지표 재계산 방지)
+            const prices = rawData.map(d => d.close);
+            const globalEma = calculateEMA(prices, comb.N);
+            
+            let globalUp1 = [], globalDn1 = [], globalUp2 = [], globalDn2 = [];
+            for (let i = 0; i < rawData.length; i++) {
+                let curEMA = globalEma[i];
+                let curSD = calculateStdDev(prices, i, comb.N);
+                globalUp1.push(curEMA + comb.SIGMA * curSD);
+                globalDn1.push(curEMA - comb.SIGMA * curSD);
+                globalUp2.push(curEMA + 2 * comb.SIGMA * curSD);
+                globalDn2.push(curEMA - 2 * comb.SIGMA * curSD);
+            }
+
+            // 개별 분할 구간(연도별) 반복 시뮬레이션 돌려 통계 확보
+            let periodYields = [];
+            let periodMdds = [];
+            let periodTrades = [];
+
+            periods.forEach(p => {
+                const segResult = executeBacktestSegment(
+                    rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, p.start, p.end,
+                    globalEma, globalUp1, globalDn1, globalUp2, globalDn2
+                );
+                periodYields.push(segResult.yieldPer);
+                periodMdds.push(segResult.mdd);
+                periodTrades.push(segResult.tradeCount);
+            });
+
+            // 연간 통합 통계 연산
+            const avgYield = periodYields.reduce((a, b) => a + b, 0) / periodYields.length;
+            const winRate = (periodYields.filter(y => y > 0).length / periodYields.length) * 100;
+            const avgMdd = periodMdds.reduce((a, b) => a + b, 0) / periodMdds.length;
+            const worstYield = Math.min(...periodYields);
+            const bestYield = Math.max(...periodYields);
+            const avgTrades = periodTrades.reduce((a, b) => a + b, 0) / periodTrades.length;
+
+            robustResults.push({
+                N: comb.N,
+                SIGMA: comb.SIGMA,
+                avgYield,
+                winRate,
+                avgMdd,
+                worstYield,
+                bestYield,
+                avgTrades
+            });
+        }
+
+        const percentage = Math.round((currentIndex / total) * 100);
+        progBar.style.width = percentage + "%";
+        progText.innerText = `다중 기간 통계 스윕 연산 중... (${currentIndex} / ${total}) - ${percentage}%`;
+
+        if (currentIndex < total) {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            await executeRobustChunk();
+        } else {
+            btn.disabled = false;
+            btn.innerText = "다중 기간 분할 스윕 시작";
+            progContainer.style.display = 'none';
+
+            // 평균 수익률 순으로 정렬 (BEST -> WORST)
+            robustResults.sort((a, b) => b.avgYield - a.avgYield);
+            renderRobustTable(robustResults, periods);
+        }
+    }
+
+    await executeRobustChunk();
+}
+
+// ⏳ 다중 분할 스윕 결과 렌더러
+function renderRobustTable(results, periods) {
+    const tableBody = document.getElementById('robustTableBody');
+    tableBody.innerHTML = '';
+
+    document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간`;
+
+    results.forEach((res, index) => {
+        const rank = index + 1;
+        const avgYieldColor = res.avgYield >= 0 ? "#ff4d4d" : "#3498db";
+        const worstColor = res.worstYield >= 0 ? "#ff4d4d" : "#3498db";
+        const bestColor = res.bestYield >= 0 ? "#ff4d4d" : "#3498db";
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
+            <td style="font-weight:bold;">${res.N}일</td>
+            <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
+            <td style="color:${avgYieldColor}; font-weight:bold;">${res.avgYield > 0 ? "+" : ""}${res.avgYield.toFixed(2)}%</td>
+            <td style="font-weight:bold; color:#16a085;">${res.winRate.toFixed(1)}%</td>
+            <td style="color:#e67e22; font-weight:bold;">-${res.avgMdd.toFixed(2)}%</td>
+            <td style="color:${worstColor};">${res.worstYield > 0 ? "+" : ""}${res.worstYield.toFixed(2)}%</td>
+            <td style="color:${bestColor}; font-weight:bold;">${res.bestYield > 0 ? "+" : ""}${res.bestYield.toFixed(2)}%</td>
+            <td>${res.avgTrades.toFixed(1)}회</td>
+        `;
+
+        // 행 클릭 연계: 단일 탭으로 점프 후, 전체 기간에 대해 상세 시뮬레이션 및 차트 생성
+        row.onclick = function() {
+            document.getElementById('n_days').value = res.N;
+            document.getElementById('sigma').value = res.SIGMA;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelector("[onclick=\"switchTab('single_tab')\"]").classList.add('active');
+            document.getElementById('single_tab').classList.add('active');
+            
+            runSingleBacktest();
+            
+            document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth' });
+        };
+
+        tableBody.appendChild(row);
+    });
+
+    document.getElementById('robustResultsArea').style.display = 'block';
 }
 
 window.addEventListener('resize', () => { 
