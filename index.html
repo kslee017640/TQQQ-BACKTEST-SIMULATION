@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.7</title>
+    <title>퀀트 백테스터 Pro v9.8</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -181,7 +181,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.7</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.8</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -202,7 +202,7 @@
             
             <div class="input-group">
                 <label for="init_cash">초기 보유현금 ($)</label>
-                <input type="number" id="init_cash" value="10000" min="100" step="1000">
+                <input type="number" id="init_cash" value="35000" min="100" step="1000">
             </div>
 
             <div class="input-group" id="btc_unit_group" style="display: none;">
@@ -292,7 +292,7 @@
                 </div>
                 <div class="input-group">
                     <label>SIGMA 증가분(Step)</label>
-                    <input type="number" id="s_step" value="0.1" step="0.1" min="0.05">
+                    <input type="number" id="s_step" value="0.5" step="0.1" min="0.05">
                 </div>
             </div>
             
@@ -333,7 +333,7 @@
                 </div>
                 <div class="input-group">
                     <label>SIGMA 증가분(Step)</label>
-                    <input type="number" id="rs_step" value="0.1" step="0.1" min="0.05">
+                    <input type="number" id="rs_step" value="0.5" step="0.1" min="0.05">
                 </div>
             </div>
             
@@ -553,7 +553,6 @@ function parseRobustDate(rawVal) {
     return null;
 }
 
-// 💡 [v9.7 업데이트] 시작일 필터링을 제거하여 원천 역사적 데이터를 모두 수집하고 누적하도록 개선
 async function fetchAndParseData(ticker, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
@@ -613,7 +612,6 @@ async function fetchAndParseData(ticker, endDate) {
                         let rowDate = new Date(cleanDateStr + 'T00:00:00');
                         if (isNaN(rowDate.getTime())) continue;
 
-                        // 💡 시작일 조건(rowDate >= start)을 생략하여 시트 극초반 데이터부터 지표 Warmup이 완비되도록 로딩
                         if (rowDate <= end) {
                             let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
                             if (!isNaN(close) && close > 0) {
@@ -651,18 +649,15 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-// 💡 [v9.7 업데이트] 지표는 전체 원천 데이터를 사용해 먼저 Warmup하고, 거래 시뮬레이션 및 포트폴리오 연산은 targetStartDate 기준 활성화
 function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, targetStartDate) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
-    // 글로벌 표준편차 선계산
     let globalSD = [];
     for (let i = 0; i < rawData.length; i++) {
         globalSD.push(calculateStdDev(closePrices, i, N));
     }
 
-    // 사용자가 선택한 날짜에 해당하는 실제 트레이딩 스타트 인덱스 찾기
     let startIndex = 0;
     for (let i = 0; i < rawData.length; i++) {
         if (rawData[i].time >= targetStartDate) {
@@ -690,7 +685,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
         let curSD = globalSD[i];
         let curDate = rawData[i].time;
         
-        // 차트용 라인은 사용자가 지정한 타겟 범위 내부만 축적하여 깔끔하게 노출
         if (i >= N && curDate >= targetStartDate) {
             lineEma.push({ time: curDate, value: curEMA });
             lineUp1.push({ time: curDate, value: curEMA + SIGMA * curSD });
@@ -699,7 +693,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
             lineDn2.push({ time: curDate, value: curEMA - 2 * SIGMA * curSD });
         }
 
-        // 실제 시그널 판별 및 포트폴리오 자산 평가는 타겟 스타트 인덱스부터 수행 (Warmup 100% 무결 보정)
         if (i >= startIndex && i >= N) {
             let buySignal = 0, sellSignal = 0;
             let curUp1 = curEMA + SIGMA * curSD;
@@ -797,7 +790,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
     const finalTotalAssets = cash + finalSharesValue;
     const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
     
-    // 차트 출력을 위해 타겟 시작일 이후 구간만 잘라내어 반환
     const slicedCandles = rawData.slice(startIndex);
 
     return {
@@ -983,7 +975,6 @@ function showDefaultLegend(slicedCandles, calc, N, SIGMA) {
     updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
 }
 
-// 상세 분석 모달팝업 출력 및 차트 초기화 동적 처리기
 function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
     const modal = document.getElementById('detailModal');
     modal.style.display = 'flex';
@@ -1059,7 +1050,7 @@ function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
             const ema = param.seriesData.get(emaSeries);
             const u1 = param.seriesData.get(up1);
             const d1 = param.seriesData.get(dn1);
-            const u2 = param.seriesData.get(u2);
+            const u2 = param.seriesData.get(up2);
             const d2 = param.seriesData.get(dn2);
             
             updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
@@ -1086,9 +1077,10 @@ async function runSingleBacktest() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
-    const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
+    
+    // 💡 [v9.8 수렴] 원금 예외처리 기본 폴백을 $35,000으로 수정
+    const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
 
-    // 💡 Warmup을 위해 종료 날짜 기준으로 원천 데이터를 전체 로딩
     const rawData = await fetchAndParseData(ticker, endDate);
     if (rawData.length === 0) {
         alert("해당 기간의 데이터를 분석할 수 없습니다. 시트를 확인해 주세요.");
@@ -1098,7 +1090,6 @@ async function runSingleBacktest() {
 
     const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate);
     
-    // 타겟 날짜에 맞춰 축적된 슬라이스 캔들을 팝업창에 주입
     openDetailModal(calc.slicedCandles, calc, N, SIGMA, ticker);
     btn.innerText = "백테스트 실행 및 차트 그리기";
 }
@@ -1114,7 +1105,7 @@ async function runParameterSweep() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
-    const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
+    const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
 
     const nStart = parseInt(document.getElementById('n_start').value);
     const nEnd = parseInt(document.getElementById('n_end').value);
@@ -1254,7 +1245,7 @@ async function runRobustSweep() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
-    const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
+    const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
 
     const nStart = parseInt(document.getElementById('rn_start').value);
     const nEnd = parseInt(document.getElementById('rn_end').value);
