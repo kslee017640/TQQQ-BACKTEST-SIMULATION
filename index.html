@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.6</title>
+    <title>퀀트 백테스터 Pro v9.7</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -75,7 +75,7 @@
         .sweep-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.2s; background-color: var(--card-bg); color: var(--text-main); }
         .sweep-table tr:hover td { background-color: rgba(76, 175, 80, 0.15); }
 
-        /* 💡 스마트 팝업창(Modal) 디자인 */
+        /* 스마트 팝업창(Modal) 디자인 */
         .modal-overlay {
             display: none; 
             position: fixed; 
@@ -122,7 +122,7 @@
             color: var(--primary-color);
         }
 
-        /* 💡 모달 격자 통계 레이아웃 */
+        /* 모달 격자 통계 레이아웃 */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -181,7 +181,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.6</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.7</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -258,7 +258,7 @@
                     <input type="number" id="n_days" value="120" min="5">
                 </div>
                 <div class="input-group">
-                    <label_group for="sigma">표준편차 (SIGMA)</label_group>
+                    <label for="sigma">표준편차 (SIGMA)</label>
                     <input type="number" id="sigma" value="1.5" step="0.1" min="0.1">
                 </div>
             </div>
@@ -403,7 +403,7 @@
 <div id="detailModal" class="modal-overlay">
     <div class="modal-window">
         <span class="close-btn" onclick="closeModal()">&times;</span>
-        <h2 style="margin-top:0; font-size: 18px;">📊 단일 시뮬레이션 상세 분석 결과</h2>
+        <h2 style="margin-top:0; font-size: 18px;">📊 단일 시뮬레이션 상세 분석 결과 (Warmup 보정됨)</h2>
         <p id="tradeCountText" style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;"></p>
 
         <div class="stats-grid">
@@ -466,7 +466,6 @@ function handleTickerChange() {
     }
 }
 
-// 💡 [v9.6] 탭 스위칭 시 실행된 해당 모드의 결과 블록만 깨끗하게 교차 노출
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -501,7 +500,6 @@ window.onload = function() {
         toggleTheme();
     }
     
-    // 모달 오버레이 바깥 영역 클릭 시 모달 닫기 바인딩
     window.addEventListener('click', function(event) {
         const modal = document.getElementById('detailModal');
         if (event.target === modal) {
@@ -555,7 +553,8 @@ function parseRobustDate(rawVal) {
     return null;
 }
 
-async function fetchAndParseData(ticker, startDate, endDate) {
+// 💡 [v9.7 업데이트] 시작일 필터링을 제거하여 원천 역사적 데이터를 모두 수집하고 누적하도록 개선
+async function fetchAndParseData(ticker, endDate) {
     const url = csvUrls[ticker] + "&_=" + new Date().getTime();
     try {
         const response = await fetch(url);
@@ -571,7 +570,6 @@ async function fetchAndParseData(ticker, startDate, endDate) {
                     if (!data || data.length < 2) { resolve([]); return; }
 
                     let parsedData = [];
-                    let start = new Date(startDate + 'T00:00:00');
                     let end = new Date(endDate + 'T23:59:59');
 
                     let idxDate = 1;  
@@ -615,7 +613,8 @@ async function fetchAndParseData(ticker, startDate, endDate) {
                         let rowDate = new Date(cleanDateStr + 'T00:00:00');
                         if (isNaN(rowDate.getTime())) continue;
 
-                        if (rowDate >= start && rowDate <= end) {
+                        // 💡 시작일 조건(rowDate >= start)을 생략하여 시트 극초반 데이터부터 지표 Warmup이 완비되도록 로딩
+                        if (rowDate <= end) {
                             let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
                             if (!isNaN(close) && close > 0) {
                                 parsedData.push({ 
@@ -652,10 +651,26 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash) {
+// 💡 [v9.7 업데이트] 지표는 전체 원천 데이터를 사용해 먼저 Warmup하고, 거래 시뮬레이션 및 포트폴리오 연산은 targetStartDate 기준 활성화
+function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, targetStartDate) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
+    // 글로벌 표준편차 선계산
+    let globalSD = [];
+    for (let i = 0; i < rawData.length; i++) {
+        globalSD.push(calculateStdDev(closePrices, i, N));
+    }
+
+    // 사용자가 선택한 날짜에 해당하는 실제 트레이딩 스타트 인덱스 찾기
+    let startIndex = 0;
+    for (let i = 0; i < rawData.length; i++) {
+        if (rawData[i].time >= targetStartDate) {
+            startIndex = i;
+            break;
+        }
+    }
+
     let totalInvested = initCash; 
     let cash = initCash;          
     let shares = 0;
@@ -670,21 +685,33 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash) 
     let maxDrawdown = 0;
 
     for (let i = 0; i < rawData.length; i++) {
-        let curPrice = closePrices[i], curEMA = emaValues[i], curSD = calculateStdDev(closePrices, i, N), curDate = rawData[i].time;
+        let curPrice = closePrices[i];
+        let curEMA = emaValues[i];
+        let curSD = globalSD[i];
+        let curDate = rawData[i].time;
         
-        if (i >= N) {
+        // 차트용 라인은 사용자가 지정한 타겟 범위 내부만 축적하여 깔끔하게 노출
+        if (i >= N && curDate >= targetStartDate) {
             lineEma.push({ time: curDate, value: curEMA });
             lineUp1.push({ time: curDate, value: curEMA + SIGMA * curSD });
             lineDn1.push({ time: curDate, value: curEMA - SIGMA * curSD });
             lineUp2.push({ time: curDate, value: curEMA + 2 * SIGMA * curSD });
             lineDn2.push({ time: curDate, value: curEMA - 2 * SIGMA * curSD });
+        }
 
+        // 실제 시그널 판별 및 포트폴리오 자산 평가는 타겟 스타트 인덱스부터 수행 (Warmup 100% 무결 보정)
+        if (i >= startIndex && i >= N) {
             let buySignal = 0, sellSignal = 0;
-            if (curPrice < curEMA - 2 * SIGMA * curSD) buySignal = 3;
-            else if (curPrice < curEMA - SIGMA * curSD) buySignal = 2;
+            let curUp1 = curEMA + SIGMA * curSD;
+            let curDn1 = curEMA - SIGMA * curSD;
+            let curUp2 = curEMA + 2 * SIGMA * curSD;
+            let curDn2 = curEMA - 2 * SIGMA * curSD;
+
+            if (curPrice < curDn2) buySignal = 3;
+            else if (curPrice < curDn1) buySignal = 2;
             else if (curPrice < curEMA) buySignal = 1;
-            else if (curPrice > curEMA + 2 * SIGMA * curSD) sellSignal = 2;
-            else if (curPrice > curEMA + SIGMA * curSD) sellSignal = 1;
+            else if (curPrice > curUp2) sellSignal = 2;
+            else if (curPrice > curUp1) sellSignal = 1;
 
             if (buySignal > 0) {
                 let buySharesAmt = 0;
@@ -751,16 +778,16 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash) 
                     });
                 }
             }
-        }
 
-        let currentPortfolio = cash + (shares * curPrice);
-        if (currentPortfolio > maxPortfolioValue) {
-            maxPortfolioValue = currentPortfolio;
-        }
-        if (maxPortfolioValue > 0) {
-            let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue;
-            if (drawdown > maxDrawdown) {
-                maxDrawdown = drawdown;
+            let currentPortfolio = cash + (shares * curPrice);
+            if (currentPortfolio > maxPortfolioValue) {
+                maxPortfolioValue = currentPortfolio;
+            }
+            if (maxPortfolioValue > 0) {
+                let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue;
+                if (drawdown > maxDrawdown) {
+                    maxDrawdown = drawdown;
+                }
             }
         }
     }
@@ -769,10 +796,13 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash) 
     const finalSharesValue = shares * finalPrice;
     const finalTotalAssets = cash + finalSharesValue;
     const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
+    
+    // 차트 출력을 위해 타겟 시작일 이후 구간만 잘라내어 반환
+    const slicedCandles = rawData.slice(startIndex);
 
     return {
         totalInvested, cash, finalSharesValue, finalTotalAssets, shares, yieldPer, tradeCount, buyCount, sellCount,
-        mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2
+        mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2, slicedCandles
     };
 }
 
@@ -936,9 +966,9 @@ function updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA) {
     legendEl.style.display = 'block';
 }
 
-function showDefaultLegend(rawData, calc, N, SIGMA) {
-    if (!rawData || rawData.length === 0) return;
-    const lastData = rawData[rawData.length - 1];
+function showDefaultLegend(slicedCandles, calc, N, SIGMA) {
+    if (!slicedCandles || slicedCandles.length === 0) return;
+    const lastData = slicedCandles[slicedCandles.length - 1];
     const dateStr = lastData.time;
     
     const findVal = (arr, date) => arr.find(item => item.time === date) || null;
@@ -953,13 +983,13 @@ function showDefaultLegend(rawData, calc, N, SIGMA) {
     updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
 }
 
-// 💡 [v9.6 신설] 상세 분석 모달팝업 출력 및 차트 초기화 동적 처리기
-function openDetailModal(rawData, calc, N, SIGMA, ticker) {
+// 상세 분석 모달팝업 출력 및 차트 초기화 동적 처리기
+function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
     const modal = document.getElementById('detailModal');
     modal.style.display = 'flex';
     
     const sharesText = ticker === 'BTC' || calc.shares % 1 !== 0 ? calc.shares.toFixed(6) + " 주" : calc.shares + " 주";
-    document.getElementById('tradeCountText').innerText = `총 ${rawData.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
+    document.getElementById('tradeCountText').innerText = `총 ${slicedCandles.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
     
     document.getElementById('resInvested').innerText = "$" + calc.totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resCash').innerText = "$" + calc.cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -971,7 +1001,6 @@ function openDetailModal(rawData, calc, N, SIGMA, ticker) {
     yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%";
     yieldEl.style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
 
-    // 팝업이 확실히 DOM에 렌더링된 후 정확한 넓이로 차트를 로드하기 위해 50ms 지연 스케줄링
     setTimeout(() => {
         const chartContainer = document.getElementById('chartArea');
         chartContainer.innerHTML = '';
@@ -1001,7 +1030,7 @@ function openDetailModal(rawData, calc, N, SIGMA, ticker) {
         });
 
         const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a' });
-        candleSeries.setData(rawData);
+        candleSeries.setData(slicedCandles);
         
         const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2, title: 'EMA' });
         emaSeries.setData(calc.lineEma);
@@ -1019,10 +1048,10 @@ function openDetailModal(rawData, calc, N, SIGMA, ticker) {
         candleSeries.setMarkers(calc.tradeMarkers);
         chartInstance.timeScale().fitContent();
 
-        showDefaultLegend(rawData, calc, N, SIGMA);
+        showDefaultLegend(slicedCandles, calc, N, SIGMA);
         chartInstance.subscribeCrosshairMove(param => {
             if (!param || !param.time || param.point === undefined || param.point.x < 0 || param.point.y < 0) {
-                showDefaultLegend(rawData, calc, N, SIGMA);
+                showDefaultLegend(slicedCandles, calc, N, SIGMA);
                 return;
             }
             const dateStr = param.time;
@@ -1030,7 +1059,7 @@ function openDetailModal(rawData, calc, N, SIGMA, ticker) {
             const ema = param.seriesData.get(emaSeries);
             const u1 = param.seriesData.get(up1);
             const d1 = param.seriesData.get(dn1);
-            const u2 = param.seriesData.get(up2);
+            const u2 = param.seriesData.get(u2);
             const d2 = param.seriesData.get(dn2);
             
             updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
@@ -1038,7 +1067,6 @@ function openDetailModal(rawData, calc, N, SIGMA, ticker) {
     }, 50);
 }
 
-// 💡 [v9.6 신설] 모달 리소스 해제 처리기
 function closeModal() {
     document.getElementById('detailModal').style.display = 'none';
     if (chartInstance) {
@@ -1060,17 +1088,18 @@ async function runSingleBacktest() {
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
     const initCash = parseFloat(document.getElementById('init_cash').value) || 10000;
 
-    const rawData = await fetchAndParseData(ticker, startDate, endDate);
+    // 💡 Warmup을 위해 종료 날짜 기준으로 원천 데이터를 전체 로딩
+    const rawData = await fetchAndParseData(ticker, endDate);
     if (rawData.length === 0) {
         alert("해당 기간의 데이터를 분석할 수 없습니다. 시트를 확인해 주세요.");
         btn.innerText = "백테스트 실행 및 차트 그리기";
         return;
     }
 
-    const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash);
+    const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate);
     
-    // 💡 별도의 단일 결과창(모달 팝업)을 띄우고 그 위에 결과를 바인딩합니다.
-    openDetailModal(rawData, calc, N, SIGMA, ticker);
+    // 타겟 날짜에 맞춰 축적된 슬라이스 캔들을 팝업창에 주입
+    openDetailModal(calc.slicedCandles, calc, N, SIGMA, ticker);
     btn.innerText = "백테스트 실행 및 차트 그리기";
 }
 
@@ -1103,7 +1132,7 @@ async function runParameterSweep() {
     btn.disabled = true;
     btn.innerText = "데이터 로딩 중...";
     
-    const rawData = await fetchAndParseData(ticker, startDate, endDate);
+    const rawData = await fetchAndParseData(ticker, endDate);
     if (rawData.length === 0) {
         alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
         btn.disabled = false;
@@ -1136,7 +1165,7 @@ async function runParameterSweep() {
 
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
-            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash);
+            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate);
             results.push({
                 N: comb.N,
                 SIGMA: comb.SIGMA,
@@ -1167,7 +1196,6 @@ async function runParameterSweep() {
 
             results.sort((a, b) => b.yieldPer - a.yieldPer);
             
-            // 💡 단일 스윕 결과 완료 플래그 적용 및 결과창 가시화
             hasSweepRun = true;
             renderSweepTable(results, ticker);
         }
@@ -1203,7 +1231,6 @@ function renderSweepTable(results, ticker) {
             <td style="color:#3498db;">${res.sellCount}회</td>
         `;
 
-        // 💡 [v9.6] 행 클릭 시 스크롤을 무작정 내리는 대신 모달 팝업으로 상세창 표출
         row.onclick = function() {
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
@@ -1245,7 +1272,7 @@ async function runRobustSweep() {
     btn.disabled = true;
     btn.innerText = "전체 데이터 파싱 중...";
     
-    const rawData = await fetchAndParseData(ticker, startDate, endDate);
+    const rawData = await fetchAndParseData(ticker, endDate);
     if (rawData.length === 0) {
         alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
         btn.disabled = false;
@@ -1347,7 +1374,6 @@ async function runRobustSweep() {
 
             robustResults.sort((a, b) => b.avgYield - a.avgYield);
             
-            // 💡 다중 스윕 완료 플래그 적용 및 결과창 가시화
             hasRobustSweepRun = true;
             renderRobustTable(robustResults, periods);
         }
@@ -1381,7 +1407,6 @@ function renderRobustTable(results, periods) {
             <td>${res.avgTrades.toFixed(1)}회</td>
         `;
 
-        // 💡 [v9.6] 행 클릭 시 스크롤을 무작정 내리는 대신 모달 팝업으로 상세창 표출
         row.onclick = function() {
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
