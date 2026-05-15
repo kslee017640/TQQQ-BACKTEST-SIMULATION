@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v11.4</title>
+    <title>퀀트 백테스터 Pro v11.5</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -72,17 +72,17 @@
         .quick-btn { flex: 1; padding: 12px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
         .quick-btn:hover { filter: brightness(0.8); }
 
-        /* 테이블 디자인 (틀고정 추가) */
+        /* 테이블 디자인 (틀고정 폭 축소 반영) */
         .table-container { width: 100%; max-height: 550px; overflow: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
-        .sweep-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; font-size: 13px; min-width: 1100px; }
+        .sweep-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; font-size: 13px; min-width: 1000px; }
         .sweep-table th { background-color: var(--btn-bg); color: var(--text-main); font-weight: bold; padding: 12px 10px; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
         .sweep-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; background-color: var(--card-bg); color: var(--text-main); transition: background-color 0.2s; }
         .sweep-table tr:hover td { background-color: var(--hover-bg); }
 
-        /* 좌측 틀고정 (Sticky Columns) 설정 */
-        .sweep-table th:nth-child(1), .sweep-table td:nth-child(1) { position: sticky; left: 0; width: 70px; min-width: 70px; box-sizing: border-box; z-index: 11; border-right: 1px solid var(--border-color); }
-        .sweep-table th:nth-child(2), .sweep-table td:nth-child(2) { position: sticky; left: 70px; width: 80px; min-width: 80px; box-sizing: border-box; z-index: 11; border-right: 1px solid var(--border-color); }
-        .sweep-table th:nth-child(3), .sweep-table td:nth-child(3) { position: sticky; left: 150px; width: 80px; min-width: 80px; box-sizing: border-box; z-index: 11; border-right: 2px solid var(--border-color); box-shadow: 2px 0 5px var(--shadow-sticky); }
+        /* 좌측 틀고정 (Sticky Columns) 1/3, 1/2 수준으로 축소 */
+        .sweep-table th:nth-child(1), .sweep-table td:nth-child(1) { position: sticky; left: 0; width: 32px; min-width: 32px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 1px solid var(--border-color); }
+        .sweep-table th:nth-child(2), .sweep-table td:nth-child(2) { position: sticky; left: 32px; width: 40px; min-width: 40px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 1px solid var(--border-color); }
+        .sweep-table th:nth-child(3), .sweep-table td:nth-child(3) { position: sticky; left: 72px; width: 42px; min-width: 42px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 2px solid var(--border-color); box-shadow: 2px 0 5px var(--shadow-sticky); }
         
         /* 테이블 좌측 상단 모서리(헤더)는 z-index 최상위 배정 */
         .sweep-table th:nth-child(1), .sweep-table th:nth-child(2), .sweep-table th:nth-child(3) { z-index: 12; }
@@ -193,7 +193,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.4</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.5</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -405,7 +405,7 @@
                 <thead>
                     <tr>
                         <th>순위</th>
-                        <th>N (기준일)</th>
+                        <th>N</th>
                         <th>SIGMA</th>
                         <th>총 투자 금액</th>
                         <th>보유 현금</th>
@@ -435,7 +435,7 @@
                 <thead>
                     <tr>
                         <th>순위</th>
-                        <th>N (기준일)</th>
+                        <th>N</th>
                         <th>SIGMA</th>
                         <th>총 투자 금액</th>
                         <th>보유 현금</th>
@@ -890,7 +890,6 @@ function getDefaultTradeConfig() {
     };
 }
 
-// V11.2 수정: 어떤 구간에서 신호가 발생했는지 레벨(signalLevel)도 함께 리턴합니다.
 function getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, tradeConfig) {
     const config = tradeConfig || getDefaultTradeConfig();
     let buySignal = 0;
@@ -965,7 +964,6 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
             let curUp2 = curEMA + 2 * SIGMA * curSD;
             let curDn2 = curEMA - 2 * SIGMA * curSD;
             
-            // V11.2 수정: signalLevel 값 추출
             const { buySignal, sellSignal, signalLevel } = getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, tradeConfig);
 
             if (buySignal > 0) {
@@ -994,10 +992,9 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
                 tradeCount++;
                 buyCount++;
                 
-                // V11.2 수정: 구간별 색상 차별화
-                let markerColor = '#ff4d4d'; // 기본 빨강 (-1σ)
-                if (signalLevel === 'dn2') markerColor = '#990000'; // 짙은 빨강 (-2σ)
-                else if (signalLevel === 'ema') markerColor = '#ff9999'; // 연한 빨강 (EMA 아래)
+                let markerColor = '#ff4d4d'; 
+                if (signalLevel === 'dn2') markerColor = '#990000'; 
+                else if (signalLevel === 'ema') markerColor = '#ff9999'; 
 
                 tradeMarkers.push({ 
                     time: curDate, 
@@ -1030,9 +1027,8 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
                     tradeCount++;
                     sellCount++;
                     
-                    // V11.2 수정: 구간별 색상 차별화
-                    let markerColor = '#3498db'; // 기본 파랑 (+1σ)
-                    if (signalLevel === 'up2') markerColor = '#000099'; // 짙은 파랑 (+2σ)
+                    let markerColor = '#3498db'; 
+                    if (signalLevel === 'up2') markerColor = '#000099'; 
 
                     tradeMarkers.push({ 
                         time: curDate, 
@@ -1637,7 +1633,6 @@ async function runRobustSweep() {
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
             
-            // V11.1 변경: 화면 표출을 위한 전체 기간 시뮬레이션 데이터를 뽑아냅니다.
             const calcFull = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
 
             const prices = rawData.map(d => d.close);
@@ -1683,7 +1678,6 @@ async function runRobustSweep() {
                 worstYield,
                 bestYield,
                 avgTrades,
-                // V11.1 추가: 단일 스윕 테이블에 보여주기 위한 14개 전체 구간 통계 정보
                 totalInvested: calcFull.totalInvested,
                 cash: calcFull.cash,
                 finalSharesValue: calcFull.finalSharesValue,
@@ -1710,7 +1704,6 @@ async function runRobustSweep() {
             btn.innerText = "다중 기간 분할 스윕 시작";
             progContainer.style.display = 'none';
 
-            // V11.3 변경: 순위 기준을 평균 수익률(avgYield)에서 전체 총 수익률(yieldPer)로 변경
             robustResults.sort((a, b) => b.yieldPer - a.yieldPer);
             
             hasRobustSweepRun = true;
@@ -1725,7 +1718,6 @@ function renderRobustTable(results, periods) {
     const tableBody = document.getElementById('robustTableBody');
     tableBody.innerHTML = '';
 
-    // V11.3 변경: 기준 안내 문구 업데이트 (순위 기준: 전체 총 수익률)
     document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간 (※ 순위 기준: 전체 총 수익률)`;
 
     const ticker = document.getElementById('ticker').value;
@@ -1736,7 +1728,6 @@ function renderRobustTable(results, periods) {
         const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
         const yieldPrefix = res.yieldPer > 0 ? "+" : "";
 
-        // V11.3 추가: 평균 수익률 데이터 표출을 위한 변수
         const avgYieldColor = res.avgYield >= 0 ? "#ff4d4d" : "#3498db";
         const avgYieldPrefix = res.avgYield > 0 ? "+" : "";
         
@@ -1746,7 +1737,6 @@ function renderRobustTable(results, periods) {
         const sharesDisp = ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(4) + "주" : res.shares + "주";
 
         const row = document.createElement('tr');
-        // V11.3 변경: 전체 총 수익률 항목과 분할 평균 수익률 항목을 명확히 분리하여 렌더링
         row.innerHTML = `
             <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
