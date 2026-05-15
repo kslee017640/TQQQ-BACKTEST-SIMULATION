@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v10.0</title>
+    <title>퀀트 백테스터 Pro v11.1</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -125,7 +125,7 @@
         /* 모달 격자 통계 레이아웃 */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
         }
         @media (max-width: 600px) {
@@ -181,7 +181,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v10.0</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.1</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -203,6 +203,11 @@
             <div class="input-group">
                 <label for="init_cash">초기 보유현금 ($)</label>
                 <input type="number" id="init_cash" value="35000" min="100" step="1000">
+            </div>
+
+            <div class="input-group">
+                <label for="monthly_invest">매월 적립액 ($)</label>
+                <input type="number" id="monthly_invest" value="400" min="0" step="100">
             </div>
 
             <div class="input-group" id="btc_unit_group" style="display: none;">
@@ -396,6 +401,7 @@
                         <th>환산 금액</th>
                         <th>총자산</th>
                         <th>수익률</th>
+                        <th>CAGR</th>
                         <th>MDD (최대 낙폭)</th>
                         <th>총 거래</th>
                         <th>매수</th>
@@ -414,17 +420,23 @@
         
         <div class="table-container">
             <table class="sweep-table">
+                <!-- V11.1 변경: 단일 기간 스윕 결과 테이블 항목과 완전히 동일하게 교체 -->
                 <thead>
                     <tr>
                         <th>순위</th>
                         <th>N (기준일)</th>
                         <th>SIGMA</th>
-                        <th>평균 수익률</th>
-                        <th>연별 승률</th>
-                        <th>평균 MDD</th>
-                        <th>최악의 해 수익률</th>
-                        <th>최상의 해 수익률</th>
-                        <th>평균 거래 횟수</th>
+                        <th>총 투자 금액</th>
+                        <th>보유 현금</th>
+                        <th>보유 수량</th>
+                        <th>환산 금액</th>
+                        <th>총자산</th>
+                        <th>수익률</th>
+                        <th>CAGR</th>
+                        <th>MDD (최대 낙폭)</th>
+                        <th>총 거래</th>
+                        <th>매수</th>
+                        <th>매도</th>
                     </tr>
                 </thead>
                 <tbody id="robustTableBody"></tbody>
@@ -463,6 +475,10 @@
             <div class="stats-box">
                 <span class="stats-label">투자금 대비 수익률</span>
                 <span id="resYield" class="stats-value" style="font-size: 16px;">0.00%</span>
+            </div>
+            <div class="stats-box">
+                <span class="stats-label">연평균 수익률 (CAGR)</span>
+                <span id="resCagr" class="stats-value" style="font-size: 16px;">0.00%</span>
             </div>
         </div>
         
@@ -842,8 +858,6 @@ function readTradeQty(inputId, defaultValue) {
 }
 
 function getTradeConfig() {
-    // 각 구간별 주문 수량을 한 곳에서 읽습니다.
-    // 기본값은 v9.x의 고정 로직(매수 1/2/3, 매도 1/2)과 동일하게 맞춰 두었습니다.
     return {
         buyBelowEma: readTradeQty('buy_ema_qty', 1),
         buyBelowDn1: readTradeQty('buy_dn1_qty', 2),
@@ -868,7 +882,6 @@ function getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, trade
     let buySignal = 0;
     let sellSignal = 0;
 
-    // 가장 강한 이탈 구간부터 확인해야 -2σ가 -1σ/EMA 조건에 묻히지 않습니다.
     if (curPrice < curDn2) buySignal = config.buyBelowDn2;
     else if (curPrice < curDn1) buySignal = config.buyBelowDn1;
     else if (curPrice < curEMA) buySignal = config.buyBelowEma;
@@ -878,7 +891,7 @@ function getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, trade
     return { buySignal, sellSignal };
 }
 
-function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, targetStartDate, tradeConfig = getDefaultTradeConfig()) {
+function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, targetStartDate, tradeConfig = getDefaultTradeConfig(), monthlyInvest = 0) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
@@ -907,6 +920,8 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
 
     let maxPortfolioValue = initCash;
     let maxDrawdown = 0;
+    
+    let currentMonth = new Date(targetStartDate + 'T00:00:00').getMonth();
 
     for (let i = 0; i < rawData.length; i++) {
         let curPrice = closePrices[i];
@@ -923,6 +938,13 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
         }
 
         if (i >= startIndex && i >= N) {
+            let curMonth = new Date(curDate + 'T00:00:00').getMonth();
+            if (curMonth !== currentMonth) {
+                cash += monthlyInvest;
+                totalInvested += monthlyInvest;
+                currentMonth = curMonth;
+            }
+
             let curUp1 = curEMA + SIGMA * curSD;
             let curDn1 = curEMA - SIGMA * curSD;
             let curUp2 = curEMA + 2 * SIGMA * curSD;
@@ -937,10 +959,11 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
                     cost = buySignal * btcUnitValue;
                     buySharesAmt = cost / curPrice;
                 } else if (curPrice <= 10) {
-                    cost = buySignal * 10; 
-                    buySharesAmt = cost / curPrice;
+                    cost = buySignal * 10;
+                    buySharesAmt = Math.floor(cost / curPrice); 
+                    cost = buySharesAmt * curPrice; 
                 } else {
-                    buySharesAmt = buySignal;
+                    buySharesAmt = Math.floor(buySignal); 
                     cost = buySharesAmt * curPrice;
                 }
 
@@ -972,10 +995,10 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
                     revenue = sellSharesAmt * curPrice;
                 } else if (curPrice <= 10) {
                     let desiredValue = sellSignal * 10;
-                    sellSharesAmt = Math.min(shares, desiredValue / curPrice);
+                    sellSharesAmt = Math.min(shares, Math.floor(desiredValue / curPrice)); 
                     revenue = sellSharesAmt * curPrice;
                 } else {
-                    sellSharesAmt = Math.min(shares, sellSignal);
+                    sellSharesAmt = Math.min(shares, Math.floor(sellSignal)); 
                     revenue = sellSharesAmt * curPrice;
                 }
 
@@ -1015,13 +1038,23 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
     
     const slicedCandles = rawData.slice(startIndex);
 
+    let cagr = 0;
+    if (slicedCandles.length > 0) {
+        const startMs = new Date(slicedCandles[0].time + 'T00:00:00').getTime();
+        const endMs = new Date(slicedCandles[slicedCandles.length - 1].time + 'T00:00:00').getTime();
+        const years = (endMs - startMs) / (1000 * 60 * 60 * 24 * 365.25);
+        if (years > 0 && totalInvested > 0 && finalTotalAssets > 0) {
+            cagr = (Math.pow(finalTotalAssets / totalInvested, 1 / years) - 1) * 100;
+        }
+    }
+
     return {
-        totalInvested, cash, finalSharesValue, finalTotalAssets, shares, yieldPer, tradeCount, buyCount, sellCount,
+        totalInvested, cash, finalSharesValue, finalTotalAssets, shares, yieldPer, cagr, tradeCount, buyCount, sellCount,
         mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2, slicedCandles
     };
 }
 
-function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig = getDefaultTradeConfig()) {
+function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig = getDefaultTradeConfig(), monthlyInvest = 0) {
     let totalInvested = initCash; 
     let cash = initCash;          
     let shares = 0;
@@ -1035,6 +1068,8 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
 
     const startMs = new Date(segStartStr + 'T00:00:00').getTime();
     const endMs = new Date(segEndStr + 'T23:59:59').getTime();
+    
+    let currentMonth = new Date(segStartStr + 'T00:00:00').getMonth();
 
     for (let i = 0; i < rawData.length; i++) {
         let curPrice = rawData[i].close, curDate = rawData[i].time;
@@ -1043,6 +1078,13 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
         if (curMs < startMs || curMs > endMs) continue;
         if (i < N) continue; 
         finalPriceInSegment = curPrice;
+
+        let curMonth = new Date(curDate + 'T00:00:00').getMonth();
+        if (curMonth !== currentMonth) {
+            cash += monthlyInvest;
+            totalInvested += monthlyInvest;
+            currentMonth = curMonth;
+        }
 
         let curEMA = globalEma[i];
         let curU1 = globalUp1[i];
@@ -1061,9 +1103,10 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
                 buySharesAmt = cost / curPrice;
             } else if (curPrice <= 10) {
                 cost = buySignal * 10;
-                buySharesAmt = cost / curPrice;
+                buySharesAmt = Math.floor(cost / curPrice);
+                cost = buySharesAmt * curPrice;
             } else {
-                buySharesAmt = buySignal;
+                buySharesAmt = Math.floor(buySignal);
                 cost = buySharesAmt * curPrice;
             }
 
@@ -1086,10 +1129,10 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
                 revenue = sellSharesAmt * curPrice;
             } else if (curPrice <= 10) {
                 let desiredValue = sellSignal * 10;
-                sellSharesAmt = Math.min(shares, desiredValue / curPrice);
+                sellSharesAmt = Math.min(shares, Math.floor(desiredValue / curPrice));
                 revenue = sellSharesAmt * curPrice;
             } else {
-                sellSharesAmt = Math.min(shares, sellSignal);
+                sellSharesAmt = Math.min(shares, Math.floor(sellSignal));
                 revenue = sellSharesAmt * curPrice;
             }
 
@@ -1216,6 +1259,10 @@ function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
     yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%";
     yieldEl.style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
 
+    const cagrEl = document.getElementById('resCagr');
+    cagrEl.innerText = (calc.cagr > 0 ? "+" : "") + calc.cagr.toFixed(2) + "%";
+    cagrEl.style.color = calc.cagr >= 0 ? "#ff4d4d" : "#3498db";
+
     setTimeout(() => {
         const chartContainer = document.getElementById('chartArea');
         chartContainer.innerHTML = '';
@@ -1303,8 +1350,8 @@ async function runSingleBacktest() {
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
     const tradeConfig = getTradeConfig();
     
-    // 💡 [v9.8 수렴] 원금 예외처리 기본 폴백을 $35,000으로 수정
     const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
+    const monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
 
     const rawData = await fetchAndParseData(ticker, endDate, {
         onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
@@ -1317,7 +1364,7 @@ async function runSingleBacktest() {
         return;
     }
 
-    const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig);
+    const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
     
     openDetailModal(calc.slicedCandles, calc, N, SIGMA, ticker);
     btn.innerText = "백테스트 실행 및 차트 그리기";
@@ -1334,7 +1381,10 @@ async function runParameterSweep() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    
     const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
+    const monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
+    
     const tradeConfig = getTradeConfig();
 
     const nStart = parseInt(document.getElementById('n_start').value);
@@ -1394,7 +1444,7 @@ async function runParameterSweep() {
 
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
-            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig);
+            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
             results.push({
                 N: comb.N,
                 SIGMA: comb.SIGMA,
@@ -1404,6 +1454,7 @@ async function runParameterSweep() {
                 finalTotalAssets: calc.finalTotalAssets,
                 shares: calc.shares,
                 yieldPer: calc.yieldPer,
+                cagr: calc.cagr,
                 tradeCount: calc.tradeCount,
                 buyCount: calc.buyCount,
                 sellCount: calc.sellCount,
@@ -1441,6 +1492,10 @@ function renderSweepTable(results, ticker) {
         const rank = index + 1;
         const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
         const yieldPrefix = res.yieldPer > 0 ? "+" : "";
+        
+        const cagrColor = res.cagr >= 0 ? "#ff4d4d" : "#3498db";
+        const cagrPrefix = res.cagr > 0 ? "+" : "";
+        
         const sharesDisp = ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(4) + "주" : res.shares + "주";
 
         const row = document.createElement('tr');
@@ -1454,6 +1509,7 @@ function renderSweepTable(results, ticker) {
             <td>$${res.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="font-weight:bold; color:var(--primary-color);">$${res.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td style="color:${yieldColor}; font-weight:bold;">${yieldPrefix}${res.yieldPer.toFixed(2)}%</td>
+            <td style="color:${cagrColor}; font-weight:bold;">${cagrPrefix}${res.cagr.toFixed(2)}%</td>
             <td style="color:#e67e22; font-weight:bold;">-${res.mdd.toFixed(2)}%</td>
             <td style="font-weight:bold;">${res.tradeCount}회</td>
             <td style="color:#ff4d4d;">${res.buyCount}회</td>
@@ -1483,7 +1539,10 @@ async function runRobustSweep() {
     const startDate = document.getElementById('start_date').value;
     const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    
     const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
+    const monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
+    
     const tradeConfig = getTradeConfig();
 
     const nStart = parseInt(document.getElementById('rn_start').value);
@@ -1552,6 +1611,9 @@ async function runRobustSweep() {
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
             
+            // V11.1 변경: 화면 표출을 위한 전체 기간 시뮬레이션 데이터를 뽑아냅니다.
+            const calcFull = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
+
             const prices = rawData.map(d => d.close);
             const globalEma = calculateEMA(prices, comb.N);
             
@@ -1572,7 +1634,7 @@ async function runRobustSweep() {
             periods.forEach(p => {
                 const segResult = executeBacktestSegment(
                     rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, p.start, p.end,
-                    globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig
+                    globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig, monthlyInvest
                 );
                 periodYields.push(segResult.yieldPer);
                 periodMdds.push(segResult.mdd);
@@ -1594,7 +1656,19 @@ async function runRobustSweep() {
                 avgMdd,
                 worstYield,
                 bestYield,
-                avgTrades
+                avgTrades,
+                // V11.1 추가: 단일 스윕 테이블에 보여주기 위한 14개 전체 구간 통계 정보
+                totalInvested: calcFull.totalInvested,
+                cash: calcFull.cash,
+                finalSharesValue: calcFull.finalSharesValue,
+                finalTotalAssets: calcFull.finalTotalAssets,
+                shares: calcFull.shares,
+                yieldPer: calcFull.yieldPer,
+                cagr: calcFull.cagr,
+                tradeCount: calcFull.tradeCount,
+                buyCount: calcFull.buyCount,
+                sellCount: calcFull.sellCount,
+                mdd: calcFull.mdd
             });
         }
 
@@ -1610,6 +1684,7 @@ async function runRobustSweep() {
             btn.innerText = "다중 기간 분할 스윕 시작";
             progContainer.style.display = 'none';
 
+            // 순위 자체는 통계적 안정성(평균 수익률)을 기준으로 그대로 정렬합니다.
             robustResults.sort((a, b) => b.avgYield - a.avgYield);
             
             hasRobustSweepRun = true;
@@ -1624,25 +1699,38 @@ function renderRobustTable(results, periods) {
     const tableBody = document.getElementById('robustTableBody');
     tableBody.innerHTML = '';
 
-    document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간`;
+    // V11.1 변경: 화면에 출력되는 데이터가 왜 다른지 혼동을 막기 위해 기준 안내를 추가했습니다.
+    document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간 (※ 순위 기준: 다중 기간 평균 수익률)`;
+
+    const ticker = document.getElementById('ticker').value;
 
     results.forEach((res, index) => {
         const rank = index + 1;
-        const avgYieldColor = res.avgYield >= 0 ? "#ff4d4d" : "#3498db";
-        const worstColor = res.worstYield >= 0 ? "#ff4d4d" : "#3498db";
-        const bestColor = res.bestYield >= 0 ? "#ff4d4d" : "#3498db";
+        // V11.1 변경: 단일스윕의 렌더링 방식과 동일하게 데이터를 화면에 표출합니다.
+        const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
+        const yieldPrefix = res.yieldPer > 0 ? "+" : "";
+        
+        const cagrColor = res.cagr >= 0 ? "#ff4d4d" : "#3498db";
+        const cagrPrefix = res.cagr > 0 ? "+" : "";
+        
+        const sharesDisp = ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(4) + "주" : res.shares + "주";
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
-            <td style="color:${avgYieldColor}; font-weight:bold;">${res.avgYield > 0 ? "+" : ""}${res.avgYield.toFixed(2)}%</td>
-            <td style="font-weight:bold; color:#16a085;">${res.winRate.toFixed(1)}%</td>
-            <td style="color:#e67e22; font-weight:bold;">-${res.avgMdd.toFixed(2)}%</td>
-            <td style="color:${worstColor};">${res.worstYield > 0 ? "+" : ""}${res.worstYield.toFixed(2)}%</td>
-            <td style="color:${bestColor}; font-weight:bold;">${res.bestYield > 0 ? "+" : ""}${res.bestYield.toFixed(2)}%</td>
-            <td>${res.avgTrades.toFixed(1)}회</td>
+            <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td>$${res.cash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td>${sharesDisp}</td>
+            <td>$${res.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="font-weight:bold; color:var(--primary-color);">$${res.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="color:${yieldColor}; font-weight:bold;">${yieldPrefix}${res.yieldPer.toFixed(2)}%</td>
+            <td style="color:${cagrColor}; font-weight:bold;">${cagrPrefix}${res.cagr.toFixed(2)}%</td>
+            <td style="color:#e67e22; font-weight:bold;">-${res.mdd.toFixed(2)}%</td>
+            <td style="font-weight:bold;">${res.tradeCount}회</td>
+            <td style="color:#ff4d4d;">${res.buyCount}회</td>
+            <td style="color:#3498db;">${res.sellCount}회</td>
         `;
 
         row.onclick = function() {
