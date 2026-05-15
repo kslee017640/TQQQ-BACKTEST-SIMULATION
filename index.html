@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v9.8</title>
+    <title>퀀트 백테스터 Pro v9.9</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -181,7 +181,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.8</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v9.9</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -553,86 +553,239 @@ function parseRobustDate(rawVal) {
     return null;
 }
 
-async function fetchAndParseData(ticker, endDate) {
-    const url = csvUrls[ticker] + "&_=" + new Date().getTime();
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("구글 시트 연동 실패");
-        const csvText = await response.text();
-        
-        return new Promise((resolve) => {
+const DATA_RETRY_LIMIT = 12;
+const DATA_RETRY_DELAY_MS = 3000;
+
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isSheetLoadingResponse(csvText) {
+    const text = String(csvText || '').replace(/\s+/g, '').toLowerCase();
+    return text.includes('로드중') || text.includes('loading');
+}
+
+function parseCsvFallback(csvText) {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let inQuotes = false;
+    const text = String(csvText || '');
+
+    for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const nextCh = text[i + 1];
+
+        if (ch === '"') {
+            if (inQuotes && nextCh === '"') {
+                cell += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (ch === ',' && !inQuotes) {
+            row.push(cell);
+            cell = '';
+        } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            if (ch === '\r' && nextCh === '\n') i++;
+            row.push(cell);
+            if (row.some(value => String(value || '').trim() !== '')) rows.push(row);
+            row = [];
+            cell = '';
+        } else {
+            cell += ch;
+        }
+    }
+
+    row.push(cell);
+    if (row.some(value => String(value || '').trim() !== '')) rows.push(row);
+    return rows;
+}
+
+function parseCsvText(csvText) {
+    return new Promise((resolve, reject) => {
+        if (window.Papa && typeof Papa.parse === 'function') {
             Papa.parse(csvText, {
                 header: false,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    const data = results.data;
-                    if (!data || data.length < 2) { resolve([]); return; }
-
-                    let parsedData = [];
-                    let end = new Date(endDate + 'T23:59:59');
-
-                    let idxDate = 1;  
-                    let idxClose = 6; 
-                    let idxOpen = 2;  
-                    let idxHigh = 3;  
-                    let idxLow = 4;   
-
-                    for (let i = 0; i < Math.min(20, data.length); i++) {
-                        let row = data[i] || [];
-                        let hasDateHeader = row.some(cell => {
-                            let c = String(cell || '').toLowerCase();
-                            return c.includes('날짜') || c.includes('date');
-                        });
-                        
-                        if (hasDateHeader) {
-                            row.forEach((cell, idx) => {
-                                let c = String(cell || '').trim().toLowerCase();
-                                if (c.includes('날짜') || c.includes('date')) idxDate = idx;
-                                else if (c.includes('종가') || c.includes('close') || c.includes('현재가')) idxClose = idx;
-                                else if (c.includes('시가') || c.includes('open')) idxOpen = idx;
-                                else if (c.includes('고가') || c.includes('high')) idxHigh = idx;
-                                else if (c.includes('저가') || c.includes('low')) idxLow = idx;
-                            });
-                            break;
-                        }
-                    }
-
-                    for (let i = 0; i < data.length; i++) {
-                        let row = data[i];
-                        let rawDate = (row[idxDate] || '').trim();
-                        if (!rawDate) continue;
-
-                        let lowerDate = rawDate.toLowerCase();
-                        if (lowerDate.includes('날짜') || lowerDate.includes('date')) continue; 
-                        if (rawDate.includes('#') || rawDate.toLowerCase().includes('loading')) continue;
-
-                        let cleanDateStr = parseRobustDate(rawDate);
-                        if (!cleanDateStr) continue; 
-
-                        let rowDate = new Date(cleanDateStr + 'T00:00:00');
-                        if (isNaN(rowDate.getTime())) continue;
-
-                        if (rowDate <= end) {
-                            let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
-                            if (!isNaN(close) && close > 0) {
-                                parsedData.push({ 
-                                    time: cleanDateStr, 
-                                    open: parseFloat(String(row[idxOpen] || close).replace(/,/g, '')), 
-                                    high: parseFloat(String(row[idxHigh] || close).replace(/,/g, '')), 
-                                    low: parseFloat(String(row[idxLow] || close).replace(/,/g, '')), 
-                                    close: close 
-                                });
-                            }
-                        }
-                    }
-                    parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
-                    resolve(parsedData);
+                    resolve(results.data || []);
+                },
+                error: function(error) {
+                    reject(error);
                 }
             });
-        });
-    } catch (e) {
-        return [];
+        } else {
+            resolve(parseCsvFallback(csvText));
+        }
+    });
+}
+
+function getDataLoadFailureMessage() {
+    const detail = fetchAndParseData.lastError ? `\n\n상세 오류: ${fetchAndParseData.lastError}` : "";
+    if (fetchAndParseData.lastStatus === 'loading') {
+        return "구글 시트가 아직 로딩 중입니다. 잠시 후 다시 실행해 주세요.";
     }
+    if (fetchAndParseData.lastStatus === 'network') {
+        return "구글 시트 연결에 실패했습니다. 인터넷 연결 또는 시트 공개 상태를 확인해 주세요." + detail;
+    }
+    if (fetchAndParseData.lastStatus === 'parse') {
+        return "구글 시트 데이터 형식을 읽지 못했습니다. CSV 게시 형식과 날짜/종가 열을 확인해 주세요." + detail;
+    }
+    return "해당 기간의 구글 시트 데이터를 찾을 수 없습니다.";
+}
+
+async function readCsvTextFromUrl(url) {
+    const fetchErrors = [];
+
+    if (window.fetch) {
+        try {
+            const response = await fetch(url, {
+                cache: 'no-store',
+                credentials: 'omit',
+                mode: 'cors',
+                redirect: 'follow'
+            });
+            if (!response.ok) throw new Error(`fetch HTTP ${response.status} ${response.statusText}`);
+            fetchAndParseData.lastLoadMethod = 'fetch';
+            return await response.text();
+        } catch (e) {
+            fetchErrors.push(`fetch: ${e && e.message ? e.message : String(e)}`);
+        }
+    }
+
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'text';
+        xhr.timeout = 20000;
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                fetchAndParseData.lastLoadMethod = 'xhr';
+                resolve(xhr.responseText || '');
+            } else {
+                fetchErrors.push(`xhr HTTP ${xhr.status}`);
+                reject(new Error(fetchErrors.join(' / ')));
+            }
+        };
+        xhr.onerror = function() {
+            fetchErrors.push('xhr: 네트워크 또는 CORS 오류');
+            reject(new Error(fetchErrors.join(' / ')));
+        };
+        xhr.ontimeout = function() {
+            fetchErrors.push('xhr: 요청 시간 초과');
+            reject(new Error(fetchErrors.join(' / ')));
+        };
+        xhr.send();
+    });
+}
+
+async function fetchAndParseData(ticker, endDate, options = {}) {
+    const maxRetries = options.maxRetries || DATA_RETRY_LIMIT;
+    const retryDelayMs = options.retryDelayMs || DATA_RETRY_DELAY_MS;
+    fetchAndParseData.lastStatus = 'idle';
+    fetchAndParseData.lastError = '';
+    fetchAndParseData.lastLoadMethod = '';
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const url = csvUrls[ticker] + "&_=" + new Date().getTime();
+        try {
+            const csvText = await readCsvTextFromUrl(url);
+
+            if (isSheetLoadingResponse(csvText)) {
+                fetchAndParseData.lastStatus = 'loading';
+                if (attempt < maxRetries) {
+                    if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs });
+                    await wait(retryDelayMs);
+                    continue;
+                }
+                return [];
+            }
+
+            if (/^\s*</.test(csvText)) {
+                throw new Error(`CSV 대신 HTML 응답을 받았습니다. 시트 게시 URL 또는 로그인/권한 상태를 확인해 주세요. (${fetchAndParseData.lastLoadMethod})`);
+            }
+
+            const data = await parseCsvText(csvText);
+            if (!data || data.length < 2) {
+                fetchAndParseData.lastStatus = 'empty';
+                return [];
+            }
+
+            let parsedData = [];
+            let end = new Date(endDate + 'T23:59:59');
+
+            let idxDate = 1;  
+            let idxClose = 6; 
+            let idxOpen = 2;  
+            let idxHigh = 3;  
+            let idxLow = 4;   
+
+            for (let i = 0; i < Math.min(20, data.length); i++) {
+                let row = data[i] || [];
+                let hasDateHeader = row.some(cell => {
+                    let c = String(cell || '').toLowerCase();
+                    return c.includes('날짜') || c.includes('date');
+                });
+                
+                if (hasDateHeader) {
+                    row.forEach((cell, idx) => {
+                        let c = String(cell || '').trim().toLowerCase();
+                        if (c.includes('날짜') || c.includes('date')) idxDate = idx;
+                        else if (c.includes('종가') || c.includes('close') || c.includes('현재가')) idxClose = idx;
+                        else if (c.includes('시가') || c.includes('open')) idxOpen = idx;
+                        else if (c.includes('고가') || c.includes('high')) idxHigh = idx;
+                        else if (c.includes('저가') || c.includes('low')) idxLow = idx;
+                    });
+                    break;
+                }
+            }
+
+            for (let i = 0; i < data.length; i++) {
+                let row = data[i];
+                let rawDate = (row[idxDate] || '').trim();
+                if (!rawDate) continue;
+
+                let lowerDate = rawDate.toLowerCase();
+                if (lowerDate.includes('날짜') || lowerDate.includes('date')) continue; 
+                if (rawDate.includes('#') || rawDate.toLowerCase().includes('loading')) continue;
+
+                let cleanDateStr = parseRobustDate(rawDate);
+                if (!cleanDateStr) continue; 
+
+                let rowDate = new Date(cleanDateStr + 'T00:00:00');
+                if (isNaN(rowDate.getTime())) continue;
+
+                if (rowDate <= end) {
+                    let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
+                    if (!isNaN(close) && close > 0) {
+                        parsedData.push({ 
+                            time: cleanDateStr, 
+                            open: parseFloat(String(row[idxOpen] || close).replace(/,/g, '')), 
+                            high: parseFloat(String(row[idxHigh] || close).replace(/,/g, '')), 
+                            low: parseFloat(String(row[idxLow] || close).replace(/,/g, '')), 
+                            close: close 
+                        });
+                    }
+                }
+            }
+            parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+            fetchAndParseData.lastStatus = parsedData.length > 0 ? 'success' : 'empty';
+            return parsedData;
+        } catch (e) {
+            fetchAndParseData.lastError = e && e.message ? e.message : String(e);
+            fetchAndParseData.lastStatus = e && /parse|papa/i.test(String(e.message || e)) ? 'parse' : 'network';
+            if (attempt < maxRetries) {
+                if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs });
+                await wait(retryDelayMs);
+                continue;
+            }
+            return [];
+        }
+    }
+
+    return [];
 }
 
 function calculateEMA(prices, n) {
@@ -808,6 +961,7 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
 
     let maxPortfolioValue = initCash;
     let maxDrawdown = 0;
+    let finalPriceInSegment = null;
 
     const startMs = new Date(segStartStr + 'T00:00:00').getTime();
     const endMs = new Date(segEndStr + 'T23:59:59').getTime();
@@ -818,6 +972,7 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
         
         if (curMs < startMs || curMs > endMs) continue;
         if (i < N) continue; 
+        finalPriceInSegment = curPrice;
 
         let curEMA = globalEma[i];
         let curU1 = globalUp1[i];
@@ -893,7 +1048,11 @@ function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStar
         }
     }
 
-    const finalPrice = rawData[rawData.length - 1].close; 
+    if (finalPriceInSegment === null) {
+        return { yieldPer: 0, mdd: 0, tradeCount: 0 };
+    }
+
+    const finalPrice = finalPriceInSegment; 
     const finalSharesValue = shares * finalPrice;
     const finalTotalAssets = cash + finalSharesValue;
     const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
@@ -1081,9 +1240,13 @@ async function runSingleBacktest() {
     // 💡 [v9.8 수렴] 원금 예외처리 기본 폴백을 $35,000으로 수정
     const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
 
-    const rawData = await fetchAndParseData(ticker, endDate);
+    const rawData = await fetchAndParseData(ticker, endDate, {
+        onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
+            btn.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries}, ${retryDelayMs / 1000}초 후 재시도)`;
+        }
+    });
     if (rawData.length === 0) {
-        alert("해당 기간의 데이터를 분석할 수 없습니다. 시트를 확인해 주세요.");
+        alert(getDataLoadFailureMessage());
         btn.innerText = "백테스트 실행 및 차트 그리기";
         return;
     }
@@ -1123,11 +1286,19 @@ async function runParameterSweep() {
     btn.disabled = true;
     btn.innerText = "데이터 로딩 중...";
     
-    const rawData = await fetchAndParseData(ticker, endDate);
+    const rawData = await fetchAndParseData(ticker, endDate, {
+        onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
+            progContainer.style.display = 'block';
+            progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%";
+            progText.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries}) - ${retryDelayMs / 1000}초 후 재시도`;
+            btn.innerText = "시트 로딩 대기 중...";
+        }
+    });
     if (rawData.length === 0) {
-        alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
+        alert(getDataLoadFailureMessage());
         btn.disabled = false;
         btn.innerText = "단일 기간 최적값 스윕 시작";
+        progContainer.style.display = 'none';
         return;
     }
 
@@ -1263,11 +1434,19 @@ async function runRobustSweep() {
     btn.disabled = true;
     btn.innerText = "전체 데이터 파싱 중...";
     
-    const rawData = await fetchAndParseData(ticker, endDate);
+    const rawData = await fetchAndParseData(ticker, endDate, {
+        onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
+            progContainer.style.display = 'block';
+            progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%";
+            progText.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries}) - ${retryDelayMs / 1000}초 후 재시도`;
+            btn.innerText = "시트 로딩 대기 중...";
+        }
+    });
     if (rawData.length === 0) {
-        alert("해당 기간의 구글 시트 데이터를 찾을 수 없습니다.");
+        alert(getDataLoadFailureMessage());
         btn.disabled = false;
         btn.innerText = "다중 기간 분할 스윕 시작";
+        progContainer.style.display = 'none';
         return;
     }
 
