@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v11.6</title>
+    <title>퀀트 백테스터 Pro v11.7</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -75,6 +75,8 @@
         /* 테이블 디자인 (틀고정 폭 축소 반영) */
         .table-container { width: 100%; max-height: 550px; overflow: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
         .sweep-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; font-size: 13px; min-width: 1000px; }
+        .sweep-table.robust-table { min-width: 650px; } /* V11.7: 다중 스윕 테이블 열폭 맞춤 보정 */
+        
         .sweep-table th { background-color: var(--btn-bg); color: var(--text-main); font-weight: bold; padding: 12px 10px; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
         .sweep-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; background-color: var(--card-bg); color: var(--text-main); transition: background-color 0.2s; }
         .sweep-table tr:hover td { background-color: var(--hover-bg); }
@@ -193,7 +195,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.6</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.7</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -431,7 +433,8 @@
         <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 팝업으로 즉시 표출</b>됩니다.</p>
         
         <div class="table-container">
-            <table class="sweep-table">
+            <!-- V11.7: robust-table 클래스를 추가하여 다중 스윕 테이블의 열폭 조밀도 증가 -->
+            <table class="sweep-table robust-table">
                 <thead>
                     <tr>
                         <th>순위</th>
