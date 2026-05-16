@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v11.5</title>
+    <title>퀀트 백테스터 Pro v11.6</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -193,7 +193,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.5</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.6</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -437,18 +437,12 @@
                         <th>순위</th>
                         <th>N</th>
                         <th>SIGMA</th>
-                        <th>총 투자 금액</th>
-                        <th>보유 현금</th>
-                        <th>보유 수량</th>
-                        <th>환산 금액</th>
-                        <th>총자산</th>
-                        <th>전체 총 수익률</th>
-                        <th>분할 평균 수익률</th>
-                        <th>전체 CAGR</th>
-                        <th>MDD (최대 낙폭)</th>
-                        <th>총 거래</th>
-                        <th>매수</th>
-                        <th>매도</th>
+                        <th id="dynamicAvgYieldHeader">평균 수익률</th>
+                        <th>승률(수익)</th>
+                        <th>평균 MDD</th>
+                        <th>최악의 구간</th>
+                        <th>최고의 구간</th>
+                        <th>평균 거래 횟수</th>
                     </tr>
                 </thead>
                 <tbody id="robustTableBody"></tbody>
@@ -1704,7 +1698,8 @@ async function runRobustSweep() {
             btn.innerText = "다중 기간 분할 스윕 시작";
             progContainer.style.display = 'none';
 
-            robustResults.sort((a, b) => b.yieldPer - a.yieldPer);
+            // V11.6: 원래 의도대로 '평균 수익률(avgYield)' 기준으로 랭킹 재정렬
+            robustResults.sort((a, b) => b.avgYield - a.avgYield);
             
             hasRobustSweepRun = true;
             renderRobustTable(robustResults, periods);
@@ -1718,41 +1713,29 @@ function renderRobustTable(results, periods) {
     const tableBody = document.getElementById('robustTableBody');
     tableBody.innerHTML = '';
 
-    document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간 (※ 순위 기준: 전체 총 수익률)`;
-
-    const ticker = document.getElementById('ticker').value;
+    // V11.6: 평균 수익률이 몇 년치의 평균인지 동적으로 헤더에 반영
+    document.getElementById('dynamicAvgYieldHeader').innerText = `${periods.length}년 평균 수익률`;
+    document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간 (※ 순위 기준: ${periods.length}년 평균 수익률 높은 순)`;
 
     results.forEach((res, index) => {
         const rank = index + 1;
         
-        const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
-        const yieldPrefix = res.yieldPer > 0 ? "+" : "";
-
         const avgYieldColor = res.avgYield >= 0 ? "#ff4d4d" : "#3498db";
-        const avgYieldPrefix = res.avgYield > 0 ? "+" : "";
-        
-        const cagrColor = res.cagr >= 0 ? "#ff4d4d" : "#3498db";
-        const cagrPrefix = res.cagr > 0 ? "+" : "";
-        
-        const sharesDisp = ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(4) + "주" : res.shares + "주";
+        const worstColor = res.worstYield >= 0 ? "#ff4d4d" : "#3498db";
+        const bestColor = res.bestYield >= 0 ? "#ff4d4d" : "#3498db";
 
         const row = document.createElement('tr');
+        // V11.6: 다중 분할 스윕 본래의 지표 항목들(승률, 평균 MDD, 최악/최고의 구간 등)로 테이블 복구 
         row.innerHTML = `
             <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
-            <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td>$${res.cash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td>${sharesDisp}</td>
-            <td>$${res.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="font-weight:bold; color:var(--primary-color);">$${res.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="color:${yieldColor}; font-weight:bold;">${yieldPrefix}${res.yieldPer.toFixed(2)}%</td>
-            <td style="color:${avgYieldColor}; font-weight:bold;">${avgYieldPrefix}${res.avgYield.toFixed(2)}%</td>
-            <td style="color:${cagrColor}; font-weight:bold;">${cagrPrefix}${res.cagr.toFixed(2)}%</td>
-            <td style="color:#e67e22; font-weight:bold;">-${res.mdd.toFixed(2)}%</td>
-            <td style="font-weight:bold;">${res.tradeCount}회</td>
-            <td style="color:#ff4d4d;">${res.buyCount}회</td>
-            <td style="color:#3498db;">${res.sellCount}회</td>
+            <td style="color:${avgYieldColor}; font-weight:bold;">${res.avgYield > 0 ? "+" : ""}${res.avgYield.toFixed(2)}%</td>
+            <td style="font-weight:bold; color:#16a085;">${res.winRate.toFixed(1)}%</td>
+            <td style="color:#e67e22; font-weight:bold;">-${res.avgMdd.toFixed(2)}%</td>
+            <td style="color:${worstColor};">${res.worstYield > 0 ? "+" : ""}${res.worstYield.toFixed(2)}%</td>
+            <td style="color:${bestColor}; font-weight:bold;">${res.bestYield > 0 ? "+" : ""}${res.bestYield.toFixed(2)}%</td>
+            <td>${res.avgTrades.toFixed(1)}회</td>
         `;
 
         row.onclick = function() {
