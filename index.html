@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v11.7</title>
+    <title>퀀트 백테스터 Pro v11.9</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -72,130 +72,66 @@
         .quick-btn { flex: 1; padding: 12px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
         .quick-btn:hover { filter: brightness(0.8); }
 
-        /* 테이블 디자인 (틀고정 폭 축소 반영) */
+        /* 커스텀 메시지 박스 */
+        .msg-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .msg-box { background-color: var(--card-bg); padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .msg-box p { margin: 0 0 20px 0; font-size: 15px; line-height: 1.5; color: var(--text-main); }
+        .msg-btn { padding: 10px 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        /* 테이블 디자인 */
         .table-container { width: 100%; max-height: 550px; overflow: auto; margin-top: 15px; border-radius: 8px; border: 1px solid var(--border-color); position: relative; }
         .sweep-table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: center; font-size: 13px; min-width: 1000px; }
-        .sweep-table.robust-table { min-width: 650px; } /* V11.7: 다중 스윕 테이블 열폭 맞춤 보정 */
+        .sweep-table.robust-table { min-width: 750px; } 
         
         .sweep-table th { background-color: var(--btn-bg); color: var(--text-main); font-weight: bold; padding: 12px 10px; border-bottom: 2px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
         .sweep-table td { padding: 12px 10px; border-bottom: 1px solid var(--border-color); cursor: pointer; background-color: var(--card-bg); color: var(--text-main); transition: background-color 0.2s; }
         .sweep-table tr:hover td { background-color: var(--hover-bg); }
 
-        /* 좌측 틀고정 (Sticky Columns) 1/3, 1/2 수준으로 축소 */
+        /* 좌측 틀고정 (순위, N, SIGMA) */
         .sweep-table th:nth-child(1), .sweep-table td:nth-child(1) { position: sticky; left: 0; width: 32px; min-width: 32px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 1px solid var(--border-color); }
         .sweep-table th:nth-child(2), .sweep-table td:nth-child(2) { position: sticky; left: 32px; width: 40px; min-width: 40px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 1px solid var(--border-color); }
         .sweep-table th:nth-child(3), .sweep-table td:nth-child(3) { position: sticky; left: 72px; width: 42px; min-width: 42px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 2px solid var(--border-color); box-shadow: 2px 0 5px var(--shadow-sticky); }
         
-        /* 테이블 좌측 상단 모서리(헤더)는 z-index 최상위 배정 */
         .sweep-table th:nth-child(1), .sweep-table th:nth-child(2), .sweep-table th:nth-child(3) { z-index: 12; }
 
         /* 스마트 팝업창(Modal) 디자인 */
         .modal-overlay {
-            display: none; 
-            position: fixed; 
-            z-index: 1000; 
-            left: 0; top: 0; 
-            width: 100%; height: 100%; 
-            background-color: rgba(0, 0, 0, 0.6); 
-            backdrop-filter: blur(5px);
-            align-items: center; 
-            justify-content: center;
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); align-items: center; justify-content: center;
         }
         .modal-window {
-            background-color: var(--card-bg);
-            padding: 24px;
-            border: 1px solid var(--border-color);
-            width: 92%;
-            max-width: 850px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            animation: modalFadeIn 0.25s ease-out;
+            background-color: var(--card-bg); padding: 24px; border: 1px solid var(--border-color); width: 92%; max-width: 850px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; animation: modalFadeIn 0.25s ease-out;
         }
-        @keyframes modalFadeIn {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .close-btn {
-            position: absolute;
-            right: 20px;
-            top: 15px;
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--text-sub);
-            cursor: pointer;
-            transition: 0.2s;
-            line-height: 1;
-        }
-        .close-btn:hover {
-            color: var(--primary-color);
-        }
+        @keyframes modalFadeIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 28px; font-weight: bold; color: var(--text-sub); cursor: pointer; transition: 0.2s; line-height: 1; }
+        .close-btn:hover { color: var(--primary-color); }
 
-        /* 모달 격자 통계 레이아웃 */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-        @media (max-width: 600px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        .stats-box {
-            background-color: var(--btn-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        .stats-box { background-color: var(--btn-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; }
         .stats-label { font-size: 11px; color: var(--text-sub); font-weight: bold; margin-bottom: 3px; }
         .stats-value { font-size: 15px; font-weight: bold; color: var(--primary-color); }
 
-        /* 차트 및 범례용 래퍼 스타일 */
         .chart-wrapper { position: relative; width: 100%; height: 400px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
         #chartArea { width: 100%; height: 100%; }
         
-        /* 오버레이 스마트 범례 스타일 */
-        .chart-legend {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 10;
-            font-size: 11px;
-            font-family: 'Courier New', Courier, monospace;
-            background: rgba(255, 255, 255, 0.85);
-            color: #333333;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #dddddd;
-            pointer-events: none; 
-            line-height: 1.5;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-        }
-        [data-theme="dark"] .chart-legend {
-            background: rgba(30, 30, 30, 0.85);
-            color: #e0e0e0;
-            border-color: #444444;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-        }
+        .chart-legend { position: absolute; top: 15px; left: 15px; z-index: 10; font-size: 11px; font-family: 'Courier New', Courier, monospace; background: rgba(255, 255, 255, 0.85); color: #333333; padding: 10px; border-radius: 6px; border: 1px solid #dddddd; pointer-events: none; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
+        [data-theme="dark"] .chart-legend { background: rgba(30, 30, 30, 0.85); color: #e0e0e0; border-color: #444444; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
 
-        @media (max-width: 600px) {
-            .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; }
-        }
+        @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } }
     </style>
 </head>
 <body>
 
+<div id="msgBoxOverlay" class="msg-overlay">
+    <div class="msg-box">
+        <p id="msgBoxText">메시지 내용</p>
+        <button class="msg-btn" onclick="closeMsgBox()">확인</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.7</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.9</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -224,7 +160,17 @@
                 <input type="number" id="monthly_invest" value="400" min="0" step="100">
             </div>
 
-            <div class="input-group" id="btc_unit_group" style="display: none;">
+            <div class="input-group">
+                <label for="trade_strategy_mode">매수/매도 전략 모드</label>
+                <select id="trade_strategy_mode" onchange="toggleStrategyMode()">
+                    <option value="manual">수동 고정값 설정</option>
+                    <option value="sweep">모든 조합 스윕 (최적화)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-row" id="btc_unit_group" style="display: none;">
+            <div class="input-group">
                 <label for="btc_unit">BTC 매매 단위 ($)</label>
                 <select id="btc_unit">
                     <option value="10">10 달러 단위</option>
@@ -265,33 +211,66 @@
 
     <div class="card">
         <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">2단계: 매수/매도 수량 설정</h3>
-        <p style="font-size: 13px; color: var(--text-sub); margin: 0 0 14px 0;">
-            ※ 기본값은 기존 v9.x 전략과 동일합니다. 매도를 하지 않는 전략은 매도 수량을 모두 0으로 설정하세요. BTC와 $10 이하 종목은 기존처럼 선택 수량이 매매 단위 금액의 배수로 적용됩니다.
-        </p>
+        
+        <div id="manual_strategy_ui">
+            <p style="font-size: 13px; color: var(--text-sub); margin: 0 0 14px 0;">
+                ※ 고정할 매매 수량을 입력하세요. (BTC와 $10 이하 종목은 수량이 매매 단위의 배수로 적용됩니다.)
+            </p>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="buy_ema_qty">매수: EMA ~ -1σ 사이</label>
+                    <input type="number" id="buy_ema_qty" value="1" min="0" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="buy_dn1_qty">매수: -1σ ~ -2σ 사이</label>
+                    <input type="number" id="buy_dn1_qty" value="2" min="0" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="buy_dn2_qty">매수: -2σ 이하</label>
+                    <input type="number" id="buy_dn2_qty" value="3" min="0" step="1">
+                </div>
+            </div>
 
-        <div class="input-row">
-            <div class="input-group">
-                <label for="buy_ema_qty">매수: EMA 아래</label>
-                <input type="number" id="buy_ema_qty" value="1" min="0" step="1">
-            </div>
-            <div class="input-group">
-                <label for="buy_dn1_qty">매수: -1σ 아래</label>
-                <input type="number" id="buy_dn1_qty" value="2" min="0" step="1">
-            </div>
-            <div class="input-group">
-                <label for="buy_dn2_qty">매수: -2σ 아래</label>
-                <input type="number" id="buy_dn2_qty" value="3" min="0" step="1">
+            <div class="input-row" style="margin-bottom: 0;">
+                <div class="input-group">
+                    <label for="sell_up1_qty">매도: +1σ ~ +2σ 사이</label>
+                    <input type="number" id="sell_up1_qty" value="1" min="0" step="1">
+                </div>
+                <div class="input-group">
+                    <label for="sell_up2_qty">매도: +2σ 이상</label>
+                    <input type="number" id="sell_up2_qty" value="2" min="0" step="1">
+                </div>
             </div>
         </div>
 
-        <div class="input-row" style="margin-bottom: 0;">
-            <div class="input-group">
-                <label for="sell_up1_qty">매도: +1σ 위</label>
-                <input type="number" id="sell_up1_qty" value="1" min="0" step="1">
+        <div id="sweep_strategy_ui" style="display: none;">
+            <p style="font-size: 13px; color: #e74c3c; font-weight: bold; margin: 0 0 14px 0;">
+                ※ 스윕할 각 구간의 최대 수량(N)을 입력하세요. 0부터 N까지의 모든 경우의 수를 테스트합니다.<br>
+                <span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">(경고: 최대값이 높을수록 경우의 수가 기하급수적으로 늘어나 분석 시간이 오래 걸릴 수 있습니다.)</span>
+            </p>
+            <div class="input-row">
+                <div class="input-group">
+                    <label>최대 매수: EMA ~ -1σ (0~N)</label>
+                    <input type="number" id="s_buy_ema_max" value="1" min="0" step="1">
+                </div>
+                <div class="input-group">
+                    <label>최대 매수: -1σ ~ -2σ (0~N)</label>
+                    <input type="number" id="s_buy_dn1_max" value="2" min="0" step="1">
+                </div>
+                <div class="input-group">
+                    <label>최대 매수: -2σ 이하 (0~N)</label>
+                    <input type="number" id="s_buy_dn2_max" value="3" min="0" step="1">
+                </div>
             </div>
-            <div class="input-group">
-                <label for="sell_up2_qty">매도: +2σ 위</label>
-                <input type="number" id="sell_up2_qty" value="2" min="0" step="1">
+            <div class="input-row" style="margin-bottom: 0;">
+                <div class="input-group">
+                    <label>최대 매도: +1σ ~ +2σ (0~N)</label>
+                    <input type="number" id="s_sell_up1_max" value="1" min="0" step="1">
+                </div>
+                <div class="input-group">
+                    <label>최대 매도: +2σ 이상 (0~N)</label>
+                    <input type="number" id="s_sell_up2_max" value="1" min="0" step="1">
+                </div>
             </div>
         </div>
     </div>
@@ -318,7 +297,7 @@
         </div>
 
         <div id="sweep_tab" class="tab-content">
-            <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">※ 단일 선택 기간에 대한 최적값 스윕 범위 설정</h4>
+            <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">※ 단일 선택 기간에 대한 파라미터 최적값 스윕 범위 설정</h4>
             <div class="input-row">
                 <div class="input-group">
                     <label>N 시작값</label>
@@ -353,13 +332,16 @@
                 <div id="progressText" class="progress-text">스윕 준비 중...</div>
             </div>
 
-            <button class="main-btn" id="sweepBtn" onclick="runParameterSweep()">단일 기간 최적값 스윕 시작</button>
+            <button class="main-btn" id="sweepBtn" onclick="runParameterSweep()">최적값 스윕 시작</button>
         </div>
 
         <div id="robust_tab" class="tab-content">
             <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">
                 ※ 선택한 날짜 구간을 <b>1년 단위 분할 기간들</b>로 분리하여 평균적인 시장 대응력을 순위로 나타냅니다.
             </h4>
+            <p id="robustWarning" style="display:none; color:#e74c3c; font-size:12px; font-weight:bold; margin-bottom:10px; padding:8px; background:rgba(231, 76, 60, 0.1); border-radius:6px; border:1px solid #e74c3c;">
+                ⚠️ 매수/매도 수량 스윕(최적화) 모드에서는 조합이 기하급수적으로 늘어나 다중 기간 분할 스윕 기능을 사용할 수 없습니다. (1단계에서 '수동 고정값 설정'으로 변경해주세요)
+            </p>
             <div class="input-row">
                 <div class="input-group">
                     <label>N 시작값</label>
@@ -400,7 +382,7 @@
 
     <div id="sweepResultsArea" class="card" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">🏆 단일 기간 스윕 랭킹</h2>
-        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 팝업으로 즉시 표출</b>됩니다.</p>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 표출</b>됩니다.</p>
         
         <div class="table-container">
             <table class="sweep-table">
@@ -409,6 +391,7 @@
                         <th>순위</th>
                         <th>N</th>
                         <th>SIGMA</th>
+                        <th style="min-width: 90px;">전략(수량)</th>
                         <th>총 투자 금액</th>
                         <th>보유 현금</th>
                         <th>보유 수량</th>
@@ -430,16 +413,16 @@
     <div id="robustResultsArea" class="card" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">🏆 통계적 다중 기간 최적 랭킹 (BEST → WORST)</h2>
         <p id="robustPeriodInfo" style="font-size: 13px; color: var(--primary-color); margin-bottom: 5px; font-weight: bold;"></p>
-        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 팝업으로 즉시 표출</b>됩니다.</p>
+        <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 표출</b>됩니다.</p>
         
         <div class="table-container">
-            <!-- V11.7: robust-table 클래스를 추가하여 다중 스윕 테이블의 열폭 조밀도 증가 -->
             <table class="sweep-table robust-table">
                 <thead>
                     <tr>
                         <th>순위</th>
                         <th>N</th>
                         <th>SIGMA</th>
+                        <th style="min-width: 90px;">전략(수량)</th>
                         <th id="dynamicAvgYieldHeader">평균 수익률</th>
                         <th>승률(수익)</th>
                         <th>평균 MDD</th>
@@ -507,6 +490,14 @@ let chartInstance = null;
 let hasSweepRun = false;
 let hasRobustSweepRun = false;
 
+function showMessageBox(msg) {
+    document.getElementById('msgBoxText').innerText = msg;
+    document.getElementById('msgBoxOverlay').style.display = 'flex';
+}
+function closeMsgBox() {
+    document.getElementById('msgBoxOverlay').style.display = 'none';
+}
+
 const csvUrls = {
     'TSLA': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRroN1pjeuZtmup187y9YOgaVyDN1OtnJ5SUFKVxnnBjw2A4NaiYD-hkfvM0xkkPGZl525cMUAYPkxm/pub?gid=492154634&single=true&output=csv',
     'TQQQ': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSoyyuFOLcCVVcphupWEJnltG9RgqDHSz1wpNE6Ga2yf95KTcSO4bHH0l4MHInMglSVvIxqFpS3iKbc/pub?gid=218863667&single=true&output=csv',
@@ -522,6 +513,30 @@ function handleTickerChange() {
         btcUnitGroup.style.display = 'flex';
     } else {
         btcUnitGroup.style.display = 'none';
+    }
+}
+
+function toggleStrategyMode() {
+    const mode = document.getElementById('trade_strategy_mode').value;
+    const robustBtn = document.getElementById('robustSweepBtn');
+    const robustWarning = document.getElementById('robustWarning');
+    
+    if (mode === 'manual') {
+        document.getElementById('manual_strategy_ui').style.display = 'block';
+        document.getElementById('sweep_strategy_ui').style.display = 'none';
+        
+        // 다중 기간 스윕 버튼 활성화
+        robustBtn.disabled = false;
+        robustBtn.innerText = "다중 기간 분할 스윕 시작";
+        if(robustWarning) robustWarning.style.display = 'none';
+    } else {
+        document.getElementById('manual_strategy_ui').style.display = 'none';
+        document.getElementById('sweep_strategy_ui').style.display = 'block';
+        
+        // 스윕 모드일 때 다중 기간 스윕 강제 차단 및 경고 표시
+        robustBtn.disabled = true;
+        robustBtn.innerText = "수량 스윕 모드에서는 다중스윕 불가";
+        if(robustWarning) robustWarning.style.display = 'block';
     }
 }
 
@@ -555,6 +570,7 @@ window.onload = function() {
     document.getElementById('start_date').value = "2024-05-09";
     document.getElementById('end_date').value = new Date().toISOString().split('T')[0];
     handleTickerChange();
+    toggleStrategyMode();
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         toggleTheme();
     }
@@ -582,32 +598,21 @@ function parseRobustDate(rawVal) {
     if (!rawVal) return null;
     let s = String(rawVal).trim();
     if (s === '' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return null;
-
     let num = Number(s.replace(/,/g, ''));
     if (!isNaN(num) && num > 30000 && num < 60000) {
         let dateObj = new Date((num - 25569) * 86400 * 1000);
-        if (!isNaN(dateObj.getTime())) {
-            return dateObj.toISOString().split('T')[0];
-        }
+        if (!isNaN(dateObj.getTime())) return dateObj.toISOString().split('T')[0];
     }
-
     let match = s.match(/(\d{4})[\s\-\.\/]+(\d{1,2})[\s\-\.\/]+(\d{1,2})/);
     if (match) {
-        let y = match[1];
-        let m = match[2].padStart(2, '0');
-        let d = match[3].padStart(2, '0');
+        let y = match[1], m = match[2].padStart(2, '0'), d = match[3].padStart(2, '0');
         return `${y}-${m}-${d}`;
     }
-
     let cleanS = s.replace(/[\.\-]/g, '/').replace(/\s+/g, '');
     let dObj = new Date(cleanS);
     if (!isNaN(dObj.getTime())) {
-        let y = dObj.getFullYear();
-        let m = String(dObj.getMonth() + 1).padStart(2, '0');
-        let d = String(dObj.getDate()).padStart(2, '0');
-        if (y >= 1990 && y <= 2040) {
-            return `${y}-${m}-${d}`;
-        }
+        let y = dObj.getFullYear(), m = String(dObj.getMonth() + 1).padStart(2, '0'), d = String(dObj.getDate()).padStart(2, '0');
+        if (y >= 1990 && y <= 2040) return `${y}-${m}-${d}`;
     }
     return null;
 }
@@ -615,9 +620,7 @@ function parseRobustDate(rawVal) {
 const DATA_RETRY_LIMIT = 12;
 const DATA_RETRY_DELAY_MS = 3000;
 
-function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function isSheetLoadingResponse(csvText) {
     const text = String(csvText || '').replace(/\s+/g, '').toLowerCase();
@@ -626,36 +629,22 @@ function isSheetLoadingResponse(csvText) {
 
 function parseCsvFallback(csvText) {
     const rows = [];
-    let row = [];
-    let cell = '';
-    let inQuotes = false;
+    let row = [], cell = '', inQuotes = false;
     const text = String(csvText || '');
-
     for (let i = 0; i < text.length; i++) {
-        const ch = text[i];
-        const nextCh = text[i + 1];
-
+        const ch = text[i], nextCh = text[i + 1];
         if (ch === '"') {
-            if (inQuotes && nextCh === '"') {
-                cell += '"';
-                i++;
-            } else {
-                inQuotes = !inQuotes;
-            }
+            if (inQuotes && nextCh === '"') { cell += '"'; i++; }
+            else { inQuotes = !inQuotes; }
         } else if (ch === ',' && !inQuotes) {
-            row.push(cell);
-            cell = '';
+            row.push(cell); cell = '';
         } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
             if (ch === '\r' && nextCh === '\n') i++;
             row.push(cell);
             if (row.some(value => String(value || '').trim() !== '')) rows.push(row);
-            row = [];
-            cell = '';
-        } else {
-            cell += ch;
-        }
+            row = []; cell = '';
+        } else { cell += ch; }
     }
-
     row.push(cell);
     if (row.some(value => String(value || '').trim() !== '')) rows.push(row);
     return rows;
@@ -664,16 +653,7 @@ function parseCsvFallback(csvText) {
 function parseCsvText(csvText) {
     return new Promise((resolve, reject) => {
         if (window.Papa && typeof Papa.parse === 'function') {
-            Papa.parse(csvText, {
-                header: false,
-                skipEmptyLines: true,
-                complete: function(results) {
-                    resolve(results.data || []);
-                },
-                error: function(error) {
-                    reject(error);
-                }
-            });
+            Papa.parse(csvText, { header: false, skipEmptyLines: true, complete: function(results) { resolve(results.data || []); }, error: function(error) { reject(error); } });
         } else {
             resolve(parseCsvFallback(csvText));
         }
@@ -682,59 +662,27 @@ function parseCsvText(csvText) {
 
 function getDataLoadFailureMessage() {
     const detail = fetchAndParseData.lastError ? `\n\n상세 오류: ${fetchAndParseData.lastError}` : "";
-    if (fetchAndParseData.lastStatus === 'loading') {
-        return "구글 시트가 아직 로딩 중입니다. 잠시 후 다시 실행해 주세요.";
-    }
-    if (fetchAndParseData.lastStatus === 'network') {
-        return "구글 시트 연결에 실패했습니다. 인터넷 연결 또는 시트 공개 상태를 확인해 주세요." + detail;
-    }
-    if (fetchAndParseData.lastStatus === 'parse') {
-        return "구글 시트 데이터 형식을 읽지 못했습니다. CSV 게시 형식과 날짜/종가 열을 확인해 주세요." + detail;
-    }
+    if (fetchAndParseData.lastStatus === 'loading') return "구글 시트가 아직 로딩 중입니다. 잠시 후 다시 실행해 주세요.";
+    if (fetchAndParseData.lastStatus === 'network') return "구글 시트 연결에 실패했습니다. 인터넷 연결 또는 시트 공개 상태를 확인해 주세요." + detail;
+    if (fetchAndParseData.lastStatus === 'parse') return "구글 시트 데이터 형식을 읽지 못했습니다. CSV 게시 형식과 날짜/종가 열을 확인해 주세요." + detail;
     return "해당 기간의 구글 시트 데이터를 찾을 수 없습니다.";
 }
 
 async function readCsvTextFromUrl(url) {
-    const fetchErrors = [];
-
     if (window.fetch) {
         try {
-            const response = await fetch(url, {
-                cache: 'no-store',
-                credentials: 'omit',
-                mode: 'cors',
-                redirect: 'follow'
-            });
+            const response = await fetch(url, { cache: 'no-store', credentials: 'omit', mode: 'cors', redirect: 'follow' });
             if (!response.ok) throw new Error(`fetch HTTP ${response.status} ${response.statusText}`);
             fetchAndParseData.lastLoadMethod = 'fetch';
             return await response.text();
-        } catch (e) {
-            fetchErrors.push(`fetch: ${e && e.message ? e.message : String(e)}`);
-        }
+        } catch (e) { }
     }
-
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'text';
-        xhr.timeout = 20000;
-        xhr.onload = function() {
-            if (xhr.status >= 200 && xhr.status < 300) {
-                fetchAndParseData.lastLoadMethod = 'xhr';
-                resolve(xhr.responseText || '');
-            } else {
-                fetchErrors.push(`xhr HTTP ${xhr.status}`);
-                reject(new Error(fetchErrors.join(' / ')));
-            }
-        };
-        xhr.onerror = function() {
-            fetchErrors.push('xhr: 네트워크 또는 CORS 오류');
-            reject(new Error(fetchErrors.join(' / ')));
-        };
-        xhr.ontimeout = function() {
-            fetchErrors.push('xhr: 요청 시간 초과');
-            reject(new Error(fetchErrors.join(' / ')));
-        };
+        xhr.open('GET', url, true); xhr.responseType = 'text'; xhr.timeout = 20000;
+        xhr.onload = function() { if (xhr.status >= 200 && xhr.status < 300) { fetchAndParseData.lastLoadMethod = 'xhr'; resolve(xhr.responseText || ''); } else { reject(new Error(`xhr HTTP ${xhr.status}`)); } };
+        xhr.onerror = function() { reject(new Error('xhr: 네트워크 또는 CORS 오류')); };
+        xhr.ontimeout = function() { reject(new Error('xhr: 요청 시간 초과')); };
         xhr.send();
     });
 }
@@ -742,52 +690,28 @@ async function readCsvTextFromUrl(url) {
 async function fetchAndParseData(ticker, endDate, options = {}) {
     const maxRetries = options.maxRetries || DATA_RETRY_LIMIT;
     const retryDelayMs = options.retryDelayMs || DATA_RETRY_DELAY_MS;
-    fetchAndParseData.lastStatus = 'idle';
-    fetchAndParseData.lastError = '';
-    fetchAndParseData.lastLoadMethod = '';
+    fetchAndParseData.lastStatus = 'idle'; fetchAndParseData.lastError = ''; fetchAndParseData.lastLoadMethod = '';
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         const url = csvUrls[ticker] + "&_=" + new Date().getTime();
         try {
             const csvText = await readCsvTextFromUrl(url);
-
             if (isSheetLoadingResponse(csvText)) {
                 fetchAndParseData.lastStatus = 'loading';
-                if (attempt < maxRetries) {
-                    if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs });
-                    await wait(retryDelayMs);
-                    continue;
-                }
+                if (attempt < maxRetries) { if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs }); await wait(retryDelayMs); continue; }
                 return [];
             }
-
-            if (/^\s*</.test(csvText)) {
-                throw new Error(`CSV 대신 HTML 응답을 받았습니다. 시트 게시 URL 또는 로그인/권한 상태를 확인해 주세요. (${fetchAndParseData.lastLoadMethod})`);
-            }
-
+            if (/^\s*</.test(csvText)) throw new Error(`CSV 대신 HTML 응답을 받았습니다. (${fetchAndParseData.lastLoadMethod})`);
             const data = await parseCsvText(csvText);
-            if (!data || data.length < 2) {
-                fetchAndParseData.lastStatus = 'empty';
-                return [];
-            }
+            if (!data || data.length < 2) { fetchAndParseData.lastStatus = 'empty'; return []; }
 
             let parsedData = [];
             let end = new Date(endDate + 'T23:59:59');
-
-            let idxDate = 1;  
-            let idxClose = 6; 
-            let idxOpen = 2;  
-            let idxHigh = 3;  
-            let idxLow = 4;   
+            let idxDate = 1, idxClose = 6, idxOpen = 2, idxHigh = 3, idxLow = 4;
 
             for (let i = 0; i < Math.min(20, data.length); i++) {
                 let row = data[i] || [];
-                let hasDateHeader = row.some(cell => {
-                    let c = String(cell || '').toLowerCase();
-                    return c.includes('날짜') || c.includes('date');
-                });
-                
-                if (hasDateHeader) {
+                if (row.some(cell => String(cell || '').toLowerCase().includes('날짜') || String(cell || '').toLowerCase().includes('date'))) {
                     row.forEach((cell, idx) => {
                         let c = String(cell || '').trim().toLowerCase();
                         if (c.includes('날짜') || c.includes('date')) idxDate = idx;
@@ -803,53 +727,35 @@ async function fetchAndParseData(ticker, endDate, options = {}) {
             for (let i = 0; i < data.length; i++) {
                 let row = data[i];
                 let rawDate = (row[idxDate] || '').trim();
-                if (!rawDate) continue;
-
-                let lowerDate = rawDate.toLowerCase();
-                if (lowerDate.includes('날짜') || lowerDate.includes('date')) continue; 
-                if (rawDate.includes('#') || rawDate.toLowerCase().includes('loading')) continue;
+                if (!rawDate || rawDate.toLowerCase().includes('날짜') || rawDate.toLowerCase().includes('date') || rawDate.includes('#') || rawDate.toLowerCase().includes('loading')) continue;
 
                 let cleanDateStr = parseRobustDate(rawDate);
                 if (!cleanDateStr) continue; 
-
                 let rowDate = new Date(cleanDateStr + 'T00:00:00');
                 if (isNaN(rowDate.getTime())) continue;
 
                 if (rowDate <= end) {
                     let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
                     if (!isNaN(close) && close > 0) {
-                        parsedData.push({ 
-                            time: cleanDateStr, 
-                            open: parseFloat(String(row[idxOpen] || close).replace(/,/g, '')), 
-                            high: parseFloat(String(row[idxHigh] || close).replace(/,/g, '')), 
-                            low: parseFloat(String(row[idxLow] || close).replace(/,/g, '')), 
-                            close: close 
-                        });
+                        parsedData.push({ time: cleanDateStr, open: parseFloat(String(row[idxOpen] || close).replace(/,/g, '')), high: parseFloat(String(row[idxHigh] || close).replace(/,/g, '')), low: parseFloat(String(row[idxLow] || close).replace(/,/g, '')), close: close });
                     }
                 }
             }
             parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
-
             fetchAndParseData.lastStatus = parsedData.length > 0 ? 'success' : 'empty';
             return parsedData;
         } catch (e) {
             fetchAndParseData.lastError = e && e.message ? e.message : String(e);
             fetchAndParseData.lastStatus = e && /parse|papa/i.test(String(e.message || e)) ? 'parse' : 'network';
-            if (attempt < maxRetries) {
-                if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs });
-                await wait(retryDelayMs);
-                continue;
-            }
+            if (attempt < maxRetries) { if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs }); await wait(retryDelayMs); continue; }
             return [];
         }
     }
-
     return [];
 }
 
 function calculateEMA(prices, n) {
-    let k = 2 / (n + 1);
-    let ema = [prices[0]];
+    let k = 2 / (n + 1); let ema = [prices[0]];
     for (let i = 1; i < prices.length; i++) ema.push(prices[i] * k + ema[i - 1] * (1 - k));
     return ema;
 }
@@ -861,84 +767,78 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-function readTradeQty(inputId, defaultValue) {
-    const input = document.getElementById(inputId);
-    const value = input ? parseInt(input.value, 10) : defaultValue;
-    return Number.isFinite(value) && value >= 0 ? value : defaultValue;
+// 🎯 전략 조합 생성기
+function getAllTradeConfigs() {
+    let configs = [];
+    const mode = document.getElementById('trade_strategy_mode').value;
+    
+    if (mode === 'manual') {
+        configs.push({
+            buyBelowEma: parseInt(document.getElementById('buy_ema_qty').value) || 0,
+            buyBelowDn1: parseInt(document.getElementById('buy_dn1_qty').value) || 0,
+            buyBelowDn2: parseInt(document.getElementById('buy_dn2_qty').value) || 0,
+            sellAboveUp1: parseInt(document.getElementById('sell_up1_qty').value) || 0,
+            sellAboveUp2: parseInt(document.getElementById('sell_up2_qty').value) || 0
+        });
+    } else {
+        const maxE = parseInt(document.getElementById('s_buy_ema_max').value) || 0;
+        const maxD1 = parseInt(document.getElementById('s_buy_dn1_max').value) || 0;
+        const maxD2 = parseInt(document.getElementById('s_buy_dn2_max').value) || 0;
+        const maxU1 = parseInt(document.getElementById('s_sell_up1_max').value) || 0;
+        const maxU2 = parseInt(document.getElementById('s_sell_up2_max').value) || 0;
+
+        for (let e = 0; e <= maxE; e++) {
+            for (let d1 = 0; d1 <= maxD1; d1++) {
+                for (let d2 = 0; d2 <= maxD2; d2++) {
+                    for (let u1 = 0; u1 <= maxU1; u1++) {
+                        for (let u2 = 0; u2 <= maxU2; u2++) {
+                            // 전부 거래 안하는 케이스는 스킵해도 좋으나 허용
+                            configs.push({ buyBelowEma: e, buyBelowDn1: d1, buyBelowDn2: d2, sellAboveUp1: u1, sellAboveUp2: u2 });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return configs;
 }
 
-function getTradeConfig() {
-    return {
-        buyBelowEma: readTradeQty('buy_ema_qty', 1),
-        buyBelowDn1: readTradeQty('buy_dn1_qty', 2),
-        buyBelowDn2: readTradeQty('buy_dn2_qty', 3),
-        sellAboveUp1: readTradeQty('sell_up1_qty', 1),
-        sellAboveUp2: readTradeQty('sell_up2_qty', 2)
-    };
-}
-
-function getDefaultTradeConfig() {
-    return {
-        buyBelowEma: 1,
-        buyBelowDn1: 2,
-        buyBelowDn2: 3,
-        sellAboveUp1: 1,
-        sellAboveUp2: 2
-    };
-}
-
-function getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, tradeConfig) {
-    const config = tradeConfig || getDefaultTradeConfig();
-    let buySignal = 0;
-    let sellSignal = 0;
-    let signalLevel = '';
-
+function getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, config) {
+    let buySignal = 0, sellSignal = 0, signalLevel = '';
+    
+    // 명확해진 구간 로직:
+    // 1. -2σ 미만
     if (curPrice < curDn2) { buySignal = config.buyBelowDn2; signalLevel = 'dn2'; }
+    // 2. -1σ 미만 ~ -2σ 이상
     else if (curPrice < curDn1) { buySignal = config.buyBelowDn1; signalLevel = 'dn1'; }
+    // 3. EMA 미만 ~ -1σ 이상
     else if (curPrice < curEMA) { buySignal = config.buyBelowEma; signalLevel = 'ema'; }
+    // 4. +2σ 초과
     else if (curPrice > curUp2) { sellSignal = config.sellAboveUp2; signalLevel = 'up2'; }
+    // 5. +1σ 초과 ~ +2σ 이하
     else if (curPrice > curUp1) { sellSignal = config.sellAboveUp1; signalLevel = 'up1'; }
-
+    
     return { buySignal, sellSignal, signalLevel };
 }
 
-function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, targetStartDate, tradeConfig = getDefaultTradeConfig(), monthlyInvest = 0) {
+function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, targetStartDate, tradeConfig, monthlyInvest = 0) {
     const closePrices = rawData.map(d => d.close);
     const emaValues = calculateEMA(closePrices, N);
     
     let globalSD = [];
-    for (let i = 0; i < rawData.length; i++) {
-        globalSD.push(calculateStdDev(closePrices, i, N));
-    }
+    for (let i = 0; i < rawData.length; i++) globalSD.push(calculateStdDev(closePrices, i, N));
 
     let startIndex = 0;
-    for (let i = 0; i < rawData.length; i++) {
-        if (rawData[i].time >= targetStartDate) {
-            startIndex = i;
-            break;
-        }
-    }
+    for (let i = 0; i < rawData.length; i++) { if (rawData[i].time >= targetStartDate) { startIndex = i; break; } }
 
-    let totalInvested = initCash; 
-    let cash = initCash;          
-    let shares = 0;
-    let tradeCount = 0;
-    let buyCount = 0;
-    let sellCount = 0;
-    
-    let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [];
-    let tradeMarkers = [];
-
-    let maxPortfolioValue = initCash;
-    let maxDrawdown = 0;
-    
+    let totalInvested = initCash, cash = initCash, shares = 0;
+    let tradeCount = 0, buyCount = 0, sellCount = 0;
+    let lineEma = [], lineUp1 = [], lineDn1 = [], lineUp2 = [], lineDn2 = [], tradeMarkers = [];
+    let maxPortfolioValue = initCash, maxDrawdown = 0;
     let currentMonth = new Date(targetStartDate + 'T00:00:00').getMonth();
 
     for (let i = 0; i < rawData.length; i++) {
-        let curPrice = closePrices[i];
-        let curEMA = emaValues[i];
-        let curSD = globalSD[i];
-        let curDate = rawData[i].time;
+        let curPrice = closePrices[i], curEMA = emaValues[i], curSD = globalSD[i], curDate = rawData[i].time;
         
         if (i >= N && curDate >= targetStartDate) {
             lineEma.push({ time: curDate, value: curEMA });
@@ -950,269 +850,109 @@ function executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, 
 
         if (i >= startIndex && i >= N) {
             let curMonth = new Date(curDate + 'T00:00:00').getMonth();
-            if (curMonth !== currentMonth) {
-                cash += monthlyInvest;
-                totalInvested += monthlyInvest;
-                currentMonth = curMonth;
-            }
+            if (curMonth !== currentMonth) { cash += monthlyInvest; totalInvested += monthlyInvest; currentMonth = curMonth; }
 
-            let curUp1 = curEMA + SIGMA * curSD;
-            let curDn1 = curEMA - SIGMA * curSD;
-            let curUp2 = curEMA + 2 * SIGMA * curSD;
-            let curDn2 = curEMA - 2 * SIGMA * curSD;
-            
+            let curUp1 = curEMA + SIGMA * curSD, curDn1 = curEMA - SIGMA * curSD, curUp2 = curEMA + 2 * SIGMA * curSD, curDn2 = curEMA - 2 * SIGMA * curSD;
             const { buySignal, sellSignal, signalLevel } = getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, tradeConfig);
 
             if (buySignal > 0) {
-                let buySharesAmt = 0;
-                let cost = 0;
+                let buySharesAmt = 0, cost = 0;
+                if (ticker === 'BTC') { cost = buySignal * btcUnitValue; buySharesAmt = cost / curPrice; } 
+                else if (curPrice <= 10) { cost = buySignal * 10; buySharesAmt = Math.floor(cost / curPrice); cost = buySharesAmt * curPrice; } 
+                else { buySharesAmt = Math.floor(buySignal); cost = buySharesAmt * curPrice; }
 
-                if (ticker === 'BTC') {
-                    cost = buySignal * btcUnitValue;
-                    buySharesAmt = cost / curPrice;
-                } else if (curPrice <= 10) {
-                    cost = buySignal * 10;
-                    buySharesAmt = Math.floor(cost / curPrice); 
-                    cost = buySharesAmt * curPrice; 
-                } else {
-                    buySharesAmt = Math.floor(buySignal); 
-                    cost = buySharesAmt * curPrice;
-                }
-
-                if (cash >= cost) {
-                    cash -= cost;
-                } else {
-                    totalInvested += (cost - cash);
-                    cash = 0;
-                }
-                shares += buySharesAmt;
-                tradeCount++;
-                buyCount++;
+                if (cash >= cost) { cash -= cost; } else { totalInvested += (cost - cash); cash = 0; }
+                shares += buySharesAmt; tradeCount++; buyCount++;
                 
-                let markerColor = '#ff4d4d'; 
-                if (signalLevel === 'dn2') markerColor = '#990000'; 
-                else if (signalLevel === 'ema') markerColor = '#ff9999'; 
-
-                tradeMarkers.push({ 
-                    time: curDate, 
-                    position: 'belowBar', 
-                    color: markerColor, 
-                    shape: 'circle', 
-                    text: '' 
-                });
+                let markerColor = '#ff4d4d'; if (signalLevel === 'dn2') markerColor = '#990000'; else if (signalLevel === 'ema') markerColor = '#ff9999'; 
+                tradeMarkers.push({ time: curDate, position: 'belowBar', color: markerColor, shape: 'circle', text: '' });
 
             } else if (sellSignal > 0 && shares > 0) {
-                let sellSharesAmt = 0;
-                let revenue = 0;
-
-                if (ticker === 'BTC') {
-                    let desiredValue = sellSignal * btcUnitValue;
-                    sellSharesAmt = Math.min(shares, desiredValue / curPrice);
-                    revenue = sellSharesAmt * curPrice;
-                } else if (curPrice <= 10) {
-                    let desiredValue = sellSignal * 10;
-                    sellSharesAmt = Math.min(shares, Math.floor(desiredValue / curPrice)); 
-                    revenue = sellSharesAmt * curPrice;
-                } else {
-                    sellSharesAmt = Math.min(shares, Math.floor(sellSignal)); 
-                    revenue = sellSharesAmt * curPrice;
-                }
+                let sellSharesAmt = 0, revenue = 0;
+                if (ticker === 'BTC') { let desiredValue = sellSignal * btcUnitValue; sellSharesAmt = Math.min(shares, desiredValue / curPrice); revenue = sellSharesAmt * curPrice; } 
+                else if (curPrice <= 10) { let desiredValue = sellSignal * 10; sellSharesAmt = Math.min(shares, Math.floor(desiredValue / curPrice)); revenue = sellSharesAmt * curPrice; } 
+                else { sellSharesAmt = Math.min(shares, Math.floor(sellSignal)); revenue = sellSharesAmt * curPrice; }
 
                 if (sellSharesAmt > 0) {
-                    shares -= sellSharesAmt;
-                    cash += revenue;
-                    tradeCount++;
-                    sellCount++;
-                    
-                    let markerColor = '#3498db'; 
-                    if (signalLevel === 'up2') markerColor = '#000099'; 
-
-                    tradeMarkers.push({ 
-                        time: curDate, 
-                        position: 'aboveBar', 
-                        color: markerColor, 
-                        shape: 'circle', 
-                        text: '' 
-                    });
+                    shares -= sellSharesAmt; cash += revenue; tradeCount++; sellCount++;
+                    let markerColor = '#3498db'; if (signalLevel === 'up2') markerColor = '#000099'; 
+                    tradeMarkers.push({ time: curDate, position: 'aboveBar', color: markerColor, shape: 'circle', text: '' });
                 }
             }
-
             let currentPortfolio = cash + (shares * curPrice);
-            if (currentPortfolio > maxPortfolioValue) {
-                maxPortfolioValue = currentPortfolio;
-            }
-            if (maxPortfolioValue > 0) {
-                let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue;
-                if (drawdown > maxDrawdown) {
-                    maxDrawdown = drawdown;
-                }
-            }
+            if (currentPortfolio > maxPortfolioValue) maxPortfolioValue = currentPortfolio;
+            if (maxPortfolioValue > 0) { let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue; if (drawdown > maxDrawdown) maxDrawdown = drawdown; }
         }
     }
 
-    const finalPrice = closePrices[closePrices.length - 1];
-    const finalSharesValue = shares * finalPrice;
-    const finalTotalAssets = cash + finalSharesValue;
+    const finalPrice = closePrices[closePrices.length - 1], finalSharesValue = shares * finalPrice, finalTotalAssets = cash + finalSharesValue;
     const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
-    
     const slicedCandles = rawData.slice(startIndex);
-
     let cagr = 0;
     if (slicedCandles.length > 0) {
-        const startMs = new Date(slicedCandles[0].time + 'T00:00:00').getTime();
-        const endMs = new Date(slicedCandles[slicedCandles.length - 1].time + 'T00:00:00').getTime();
-        const years = (endMs - startMs) / (1000 * 60 * 60 * 24 * 365.25);
-        if (years > 0 && totalInvested > 0 && finalTotalAssets > 0) {
-            cagr = (Math.pow(finalTotalAssets / totalInvested, 1 / years) - 1) * 100;
-        }
+        const years = (new Date(slicedCandles[slicedCandles.length - 1].time + 'T00:00:00').getTime() - new Date(slicedCandles[0].time + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        if (years > 0 && totalInvested > 0 && finalTotalAssets > 0) cagr = (Math.pow(finalTotalAssets / totalInvested, 1 / years) - 1) * 100;
     }
 
-    return {
-        totalInvested, cash, finalSharesValue, finalTotalAssets, shares, yieldPer, cagr, tradeCount, buyCount, sellCount,
-        mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2, slicedCandles
-    };
+    return { totalInvested, cash, finalSharesValue, finalTotalAssets, shares, yieldPer, cagr, tradeCount, buyCount, sellCount, mdd: maxDrawdown * 100, tradeMarkers, lineEma, lineUp1, lineDn1, lineUp2, lineDn2, slicedCandles, tradeConfig };
 }
 
-function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig = getDefaultTradeConfig(), monthlyInvest = 0) {
-    let totalInvested = initCash; 
-    let cash = initCash;          
-    let shares = 0;
-    let tradeCount = 0;
-    let buyCount = 0;
-    let sellCount = 0;
-
-    let maxPortfolioValue = initCash;
-    let maxDrawdown = 0;
-    let finalPriceInSegment = null;
-
-    const startMs = new Date(segStartStr + 'T00:00:00').getTime();
-    const endMs = new Date(segEndStr + 'T23:59:59').getTime();
-    
+function executeBacktestSegment(rawData, N, SIGMA, btcUnitValue, ticker, segStartStr, segEndStr, globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig, monthlyInvest = 0) {
+    let totalInvested = initCash, cash = initCash, shares = 0, tradeCount = 0;
+    let maxPortfolioValue = initCash, maxDrawdown = 0, finalPriceInSegment = null;
+    const startMs = new Date(segStartStr + 'T00:00:00').getTime(), endMs = new Date(segEndStr + 'T23:59:59').getTime();
     let currentMonth = new Date(segStartStr + 'T00:00:00').getMonth();
 
     for (let i = 0; i < rawData.length; i++) {
         let curPrice = rawData[i].close, curDate = rawData[i].time;
         let curMs = new Date(curDate + 'T00:00:00').getTime();
-        
         if (curMs < startMs || curMs > endMs) continue;
         if (i < N) continue; 
         finalPriceInSegment = curPrice;
 
         let curMonth = new Date(curDate + 'T00:00:00').getMonth();
-        if (curMonth !== currentMonth) {
-            cash += monthlyInvest;
-            totalInvested += monthlyInvest;
-            currentMonth = curMonth;
-        }
+        if (curMonth !== currentMonth) { cash += monthlyInvest; totalInvested += monthlyInvest; currentMonth = curMonth; }
 
-        let curEMA = globalEma[i];
-        let curU1 = globalUp1[i];
-        let curD1 = globalDn1[i];
-        let curU2 = globalUp2[i];
-        let curD2 = globalDn2[i];
-
+        let curEMA = globalEma[i], curU1 = globalUp1[i], curD1 = globalDn1[i], curU2 = globalUp2[i], curD2 = globalDn2[i];
         const { buySignal, sellSignal } = getTradeSignals(curPrice, curEMA, curU1, curD1, curU2, curD2, tradeConfig);
 
         if (buySignal > 0) {
-            let buySharesAmt = 0;
-            let cost = 0;
+            let buySharesAmt = 0, cost = 0;
+            if (ticker === 'BTC') { cost = buySignal * btcUnitValue; buySharesAmt = cost / curPrice; } 
+            else if (curPrice <= 10) { cost = buySignal * 10; buySharesAmt = Math.floor(cost / curPrice); cost = buySharesAmt * curPrice; } 
+            else { buySharesAmt = Math.floor(buySignal); cost = buySharesAmt * curPrice; }
 
-            if (ticker === 'BTC') {
-                cost = buySignal * btcUnitValue;
-                buySharesAmt = cost / curPrice;
-            } else if (curPrice <= 10) {
-                cost = buySignal * 10;
-                buySharesAmt = Math.floor(cost / curPrice);
-                cost = buySharesAmt * curPrice;
-            } else {
-                buySharesAmt = Math.floor(buySignal);
-                cost = buySharesAmt * curPrice;
-            }
-
-            if (cash >= cost) {
-                cash -= cost;
-            } else {
-                totalInvested += (cost - cash);
-                cash = 0;
-            }
-            shares += buySharesAmt;
-            tradeCount++;
-            buyCount++;
+            if (cash >= cost) { cash -= cost; } else { totalInvested += (cost - cash); cash = 0; }
+            shares += buySharesAmt; tradeCount++;
         } else if (sellSignal > 0 && shares > 0) {
-            let sellSharesAmt = 0;
-            let revenue = 0;
+            let sellSharesAmt = 0, revenue = 0;
+            if (ticker === 'BTC') { let desiredValue = sellSignal * btcUnitValue; sellSharesAmt = Math.min(shares, desiredValue / curPrice); revenue = sellSharesAmt * curPrice; } 
+            else if (curPrice <= 10) { let desiredValue = sellSignal * 10; sellSharesAmt = Math.min(shares, Math.floor(desiredValue / curPrice)); revenue = sellSharesAmt * curPrice; } 
+            else { sellSharesAmt = Math.min(shares, Math.floor(sellSignal)); revenue = sellSharesAmt * curPrice; }
 
-            if (ticker === 'BTC') {
-                let desiredValue = sellSignal * btcUnitValue;
-                sellSharesAmt = Math.min(shares, desiredValue / curPrice);
-                revenue = sellSharesAmt * curPrice;
-            } else if (curPrice <= 10) {
-                let desiredValue = sellSignal * 10;
-                sellSharesAmt = Math.min(shares, Math.floor(desiredValue / curPrice));
-                revenue = sellSharesAmt * curPrice;
-            } else {
-                sellSharesAmt = Math.min(shares, Math.floor(sellSignal));
-                revenue = sellSharesAmt * curPrice;
-            }
-
-            if (sellSharesAmt > 0) {
-                shares -= sellSharesAmt;
-                cash += revenue;
-                tradeCount++;
-                sellCount++;
-            }
+            if (sellSharesAmt > 0) { shares -= sellSharesAmt; cash += revenue; tradeCount++; }
         }
 
         let currentPortfolio = cash + (shares * curPrice);
-        if (currentPortfolio > maxPortfolioValue) {
-            maxPortfolioValue = currentPortfolio;
-        }
-        if (maxPortfolioValue > 0) {
-            let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue;
-            if (drawdown > maxDrawdown) {
-                maxDrawdown = drawdown;
-            }
-        }
+        if (currentPortfolio > maxPortfolioValue) maxPortfolioValue = currentPortfolio;
+        if (maxPortfolioValue > 0) { let drawdown = (maxPortfolioValue - currentPortfolio) / maxPortfolioValue; if (drawdown > maxDrawdown) maxDrawdown = drawdown; }
     }
 
-    if (finalPriceInSegment === null) {
-        return { yieldPer: 0, mdd: 0, tradeCount: 0 };
-    }
-
-    const finalPrice = finalPriceInSegment; 
-    const finalSharesValue = shares * finalPrice;
-    const finalTotalAssets = cash + finalSharesValue;
+    if (finalPriceInSegment === null) return { yieldPer: 0, mdd: 0, tradeCount: 0 };
+    const finalTotalAssets = cash + (shares * finalPriceInSegment);
     const yieldPer = totalInvested > 0 ? ((finalTotalAssets - totalInvested) / totalInvested) * 100 : 0;
-
     return { yieldPer, mdd: maxDrawdown * 100, tradeCount };
 }
 
 function partitionPeriods(startDateStr, endDateStr) {
-    let periods = [];
-    let globalEnd = new Date(endDateStr + 'T00:00:00');
-    let globalStart = new Date(startDateStr + 'T00:00:00');
-    
+    let periods = [], globalEnd = new Date(endDateStr + 'T00:00:00'), globalStart = new Date(startDateStr + 'T00:00:00');
     let currEnd = new Date(globalEnd);
     while (currEnd > globalStart) {
-        let currStart = new Date(currEnd);
-        currStart.setFullYear(currStart.getFullYear() - 1);
-        currStart.setDate(currStart.getDate() + 1); 
-        
-        if (currStart < globalStart) {
-            currStart = new Date(globalStart);
-        }
-        
+        let currStart = new Date(currEnd); currStart.setFullYear(currStart.getFullYear() - 1); currStart.setDate(currStart.getDate() + 1); 
+        if (currStart < globalStart) currStart = new Date(globalStart);
         if (currStart >= currEnd) break;
-        
-        periods.push({
-            start: currStart.toISOString().split('T')[0],
-            end: currEnd.toISOString().split('T')[0],
-            label: `${currStart.getFullYear()}~${currEnd.getFullYear()}`
-        });
-        
-        let prevEnd = new Date(currStart);
-        prevEnd.setDate(prevEnd.getDate() - 1);
-        currEnd = prevEnd;
+        periods.push({ start: currStart.toISOString().split('T')[0], end: currEnd.toISOString().split('T')[0], label: `${currStart.getFullYear()}~${currEnd.getFullYear()}` });
+        let prevEnd = new Date(currStart); prevEnd.setDate(prevEnd.getDate() - 1); currEnd = prevEnd;
     }
     return periods;
 }
@@ -1220,308 +960,159 @@ function partitionPeriods(startDateStr, endDateStr) {
 function updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA) {
     const legendEl = document.getElementById('chartLegend');
     if (!legendEl) return;
-    
     let html = `<div style="font-weight:bold; margin-bottom:5px; border-bottom:1px solid var(--border-color); padding-bottom:3px;">📅 ${dateStr}</div>`;
-    if (candle) {
-        html += `<div><b>종가:</b> $${candle.close.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
-    }
-    if (ema) {
-        html += `<div style="color:#f1c40f; font-weight:bold;"><b>EMA (${N}일):</b> $${ema.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
-    }
-    if (u1) {
-        html += `<div style="color:#2ecc71; font-weight:bold;"><b>+1σ (+${SIGMA.toFixed(1)}σ):</b> $${u1.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
-    }
-    if (d1) {
-        html += `<div style="color:#3498db; font-weight:bold;"><b>-1σ (-${SIGMA.toFixed(1)}σ):</b> $${d1.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
-    }
-    if (u2) {
-        html += `<div style="color:#e67e22; font-weight:bold;"><b>+2σ (+${(SIGMA * 2).toFixed(1)}σ):</b> $${u2.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
-    }
-    if (d2) {
-        html += `<div style="color:#9b59b6; font-weight:bold;"><b>-2σ (-${(SIGMA * 2).toFixed(1)}σ):</b> $${d2.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
-    }
-    legendEl.innerHTML = html;
-    legendEl.style.display = 'block';
+    if (candle) html += `<div><b>종가:</b> $${candle.close.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    if (ema) html += `<div style="color:#f1c40f; font-weight:bold;"><b>EMA (${N}일):</b> $${ema.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    if (u1) html += `<div style="color:#2ecc71; font-weight:bold;"><b>+1σ (+${SIGMA.toFixed(1)}σ):</b> $${u1.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    if (d1) html += `<div style="color:#3498db; font-weight:bold;"><b>-1σ (-${SIGMA.toFixed(1)}σ):</b> $${d1.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    if (u2) html += `<div style="color:#e67e22; font-weight:bold;"><b>+2σ (+${(SIGMA * 2).toFixed(1)}σ):</b> $${u2.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    if (d2) html += `<div style="color:#9b59b6; font-weight:bold;"><b>-2σ (-${(SIGMA * 2).toFixed(1)}σ):</b> $${d2.value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>`;
+    legendEl.innerHTML = html; legendEl.style.display = 'block';
 }
 
 function showDefaultLegend(slicedCandles, calc, N, SIGMA) {
     if (!slicedCandles || slicedCandles.length === 0) return;
     const lastData = slicedCandles[slicedCandles.length - 1];
-    const dateStr = lastData.time;
-    
     const findVal = (arr, date) => arr.find(item => item.time === date) || null;
-
-    const candle = lastData;
-    const ema = findVal(calc.lineEma, dateStr);
-    const u1 = findVal(calc.lineUp1, dateStr);
-    const d1 = findVal(calc.lineDn1, dateStr);
-    const u2 = findVal(calc.lineUp2, dateStr);
-    const d2 = findVal(calc.lineDn2, dateStr);
-
-    updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
+    updateLegendHTML(lastData.time, lastData, findVal(calc.lineEma, lastData.time), findVal(calc.lineUp1, lastData.time), findVal(calc.lineDn1, lastData.time), findVal(calc.lineUp2, lastData.time), findVal(calc.lineDn2, lastData.time), N, SIGMA);
 }
 
 function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
     const modal = document.getElementById('detailModal');
     modal.style.display = 'flex';
-    
     const sharesText = ticker === 'BTC' || calc.shares % 1 !== 0 ? calc.shares.toFixed(6) + " 주" : calc.shares + " 주";
     document.getElementById('tradeCountText').innerText = `총 ${slicedCandles.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
-    
     document.getElementById('resInvested').innerText = "$" + calc.totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resCash').innerText = "$" + calc.cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resShares').innerText = sharesText;
     document.getElementById('resSharesValue').innerText = "$" + calc.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resTotalAssets').innerText = "$" + calc.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     
-    const yieldEl = document.getElementById('resYield');
-    yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%";
-    yieldEl.style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
-
-    const cagrEl = document.getElementById('resCagr');
-    cagrEl.innerText = (calc.cagr > 0 ? "+" : "") + calc.cagr.toFixed(2) + "%";
-    cagrEl.style.color = calc.cagr >= 0 ? "#ff4d4d" : "#3498db";
+    const yieldEl = document.getElementById('resYield'); yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%"; yieldEl.style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
+    const cagrEl = document.getElementById('resCagr'); cagrEl.innerText = (calc.cagr > 0 ? "+" : "") + calc.cagr.toFixed(2) + "%"; cagrEl.style.color = calc.cagr >= 0 ? "#ff4d4d" : "#3498db";
 
     setTimeout(() => {
-        const chartContainer = document.getElementById('chartArea');
-        chartContainer.innerHTML = '';
+        const chartContainer = document.getElementById('chartArea'); chartContainer.innerHTML = '';
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        
         chartInstance = LightweightCharts.createChart(chartContainer, {
             layout: { background: { type: 'solid', color: isDark ? '#1e1e1e' : '#ffffff' }, textColor: isDark ? '#d1d4dc' : '#333' },
             grid: { vertLines: { color: isDark ? '#333' : '#eee' }, horzLines: { color: isDark ? '#333' : '#eee' } },
-            rightPriceScale: {
-                autoScale: true,       
-                scaleMargins: { top: 0.1, bottom: 0.1 },
-                axisPressedMouseMove: true, 
-            },
-            handleScale: {
-                mouseWheel: true,
-                pinch: true,           
-                axisPressedMouseMove: { time: true, price: true }, 
-                axisDoubleClickReset: { time: true, price: true }  
-            },
-            handleScroll: {
-                mouseWheel: true,
-                pressedMouseMove: true,
-                horzTouchDrag: true,
-                vertTouchDrag: true,   
-            },
+            rightPriceScale: { autoScale: true, scaleMargins: { top: 0.1, bottom: 0.1 }, axisPressedMouseMove: true },
+            handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: { time: true, price: true }, axisDoubleClickReset: { time: true, price: true } },
+            handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
             timeScale: { borderColor: '#555' }
         });
 
-        const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a' });
-        candleSeries.setData(slicedCandles);
-        
-        const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2, title: 'EMA' });
-        emaSeries.setData(calc.lineEma);
-
-        const up1 = chartInstance.addLineSeries({ color: '#2ecc71', lineWidth: 2, title: '+1σ' }); 
-        up1.setData(calc.lineUp1);
-        const dn1 = chartInstance.addLineSeries({ color: '#3498db', lineWidth: 2, title: '-1σ' }); 
-        dn1.setData(calc.lineDn1);
-
-        const up2 = chartInstance.addLineSeries({ color: '#e67e22', lineWidth: 2, title: '+2σ' }); 
-        up2.setData(calc.lineUp2);
-        const dn2 = chartInstance.addLineSeries({ color: '#9b59b6', lineWidth: 2, title: '-2σ' }); 
-        dn2.setData(calc.lineDn2);
-
-        candleSeries.setMarkers(calc.tradeMarkers);
-        chartInstance.timeScale().fitContent();
+        const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a' }); candleSeries.setData(slicedCandles);
+        const emaSeries = chartInstance.addLineSeries({ color: '#f1c40f', lineWidth: 2, title: 'EMA' }); emaSeries.setData(calc.lineEma);
+        const up1 = chartInstance.addLineSeries({ color: '#2ecc71', lineWidth: 2, title: '+1σ' }); up1.setData(calc.lineUp1);
+        const dn1 = chartInstance.addLineSeries({ color: '#3498db', lineWidth: 2, title: '-1σ' }); dn1.setData(calc.lineDn1);
+        const up2 = chartInstance.addLineSeries({ color: '#e67e22', lineWidth: 2, title: '+2σ' }); up2.setData(calc.lineUp2);
+        const dn2 = chartInstance.addLineSeries({ color: '#9b59b6', lineWidth: 2, title: '-2σ' }); dn2.setData(calc.lineDn2);
+        candleSeries.setMarkers(calc.tradeMarkers); chartInstance.timeScale().fitContent();
 
         showDefaultLegend(slicedCandles, calc, N, SIGMA);
         chartInstance.subscribeCrosshairMove(param => {
-            if (!param || !param.time || param.point === undefined || param.point.x < 0 || param.point.y < 0) {
-                showDefaultLegend(slicedCandles, calc, N, SIGMA);
-                return;
-            }
-            const dateStr = param.time;
-            const candle = param.seriesData.get(candleSeries);
-            const ema = param.seriesData.get(emaSeries);
-            const u1 = param.seriesData.get(up1);
-            const d1 = param.seriesData.get(dn1);
-            const u2 = param.seriesData.get(up2);
-            const d2 = param.seriesData.get(dn2);
-            
-            updateLegendHTML(dateStr, candle, ema, u1, d1, u2, d2, N, SIGMA);
+            if (!param || !param.time || param.point === undefined || param.point.x < 0 || param.point.y < 0) { showDefaultLegend(slicedCandles, calc, N, SIGMA); return; }
+            updateLegendHTML(param.time, param.seriesData.get(candleSeries), param.seriesData.get(emaSeries), param.seriesData.get(up1), param.seriesData.get(dn1), param.seriesData.get(up2), param.seriesData.get(dn2), N, SIGMA);
         });
     }, 50);
 }
 
-function closeModal() {
-    document.getElementById('detailModal').style.display = 'none';
-    if (chartInstance) {
-        chartInstance.remove();
-        chartInstance = null;
-    }
-}
+function closeModal() { document.getElementById('detailModal').style.display = 'none'; if (chartInstance) { chartInstance.remove(); chartInstance = null; } }
 
-// 🎯 [단일 백테스트 실행기]
+// 🎯 [단일 백테스트]
 async function runSingleBacktest() {
-    const btn = document.querySelector('#single_tab .main-btn');
-    btn.innerText = "데이터 분석 중...";
+    const btn = document.querySelector('#single_tab .main-btn'); btn.innerText = "데이터 분석 중...";
+    const ticker = document.getElementById('ticker').value, N = parseInt(document.getElementById('n_days').value), SIGMA = parseFloat(document.getElementById('sigma').value);
+    const startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
+    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
-    const ticker = document.getElementById('ticker').value;
-    const N = parseInt(document.getElementById('n_days').value);
-    const SIGMA = parseFloat(document.getElementById('sigma').value);
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
-    const tradeConfig = getTradeConfig();
-    
-    const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
-    const monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
+    // 단일 실행은 첫번째 전략 설정만 사용
+    const tradeConfigs = getAllTradeConfigs();
+    if(tradeConfigs.length === 0) { showMessageBox("전략 설정이 올바르지 않습니다."); btn.innerText = "백테스트 실행 및 차트 그리기"; return; }
+    const tradeConfig = tradeConfigs[0];
 
-    const rawData = await fetchAndParseData(ticker, endDate, {
-        onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
-            btn.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries}, ${retryDelayMs / 1000}초 후 재시도)`;
-        }
-    });
-    if (rawData.length === 0) {
-        alert(getDataLoadFailureMessage());
-        btn.innerText = "백테스트 실행 및 차트 그리기";
-        return;
-    }
+    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { btn.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries})`; } });
+    if (rawData.length === 0) { showMessageBox(getDataLoadFailureMessage()); btn.innerText = "백테스트 실행 및 차트 그리기"; return; }
 
     const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
-    
     openDetailModal(calc.slicedCandles, calc, N, SIGMA, ticker);
     btn.innerText = "백테스트 실행 및 차트 그리기";
 }
 
-// ⚡ [단일 기간 최적화 스윕 엔진]
+// ⚡ [단일 기간 스윕]
 async function runParameterSweep() {
     const btn = document.getElementById('sweepBtn');
-    const progContainer = document.getElementById('progressContainer');
-    const progBar = document.getElementById('progressBar');
-    const progText = document.getElementById('progressText');
-
-    const ticker = document.getElementById('ticker').value;
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    const progContainer = document.getElementById('progressContainer'), progBar = document.getElementById('progressBar'), progText = document.getElementById('progressText');
+    const ticker = document.getElementById('ticker').value, startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
+    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
-    const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
-    const monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
-    
-    const tradeConfig = getTradeConfig();
+    const tradeConfigs = getAllTradeConfigs();
+    const nStart = parseInt(document.getElementById('n_start').value), nEnd = parseInt(document.getElementById('n_end').value), nStep = parseInt(document.getElementById('n_step').value);
+    const sStart = parseFloat(document.getElementById('s_start').value), sEnd = parseFloat(document.getElementById('s_end').value), sStep = parseFloat(document.getElementById('s_step').value);
 
-    const nStart = parseInt(document.getElementById('n_start').value);
-    const nEnd = parseInt(document.getElementById('n_end').value);
-    const nStep = parseInt(document.getElementById('n_step').value);
-
-    const sStart = parseFloat(document.getElementById('s_start').value);
-    const sEnd = parseFloat(document.getElementById('s_end').value);
-    const sStep = parseFloat(document.getElementById('s_step').value);
-
-    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) {
-        alert("스윕 구간 범위를 올바르게 설정해주세요.");
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerText = "데이터 로딩 중...";
-    
-    const rawData = await fetchAndParseData(ticker, endDate, {
-        onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
-            progContainer.style.display = 'block';
-            progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%";
-            progText.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries}) - ${retryDelayMs / 1000}초 후 재시도`;
-            btn.innerText = "시트 로딩 대기 중...";
-        }
-    });
-    if (rawData.length === 0) {
-        alert(getDataLoadFailureMessage());
-        btn.disabled = false;
-        btn.innerText = "단일 기간 최적값 스윕 시작";
-        progContainer.style.display = 'none';
-        return;
-    }
+    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0 || tradeConfigs.length === 0) { showMessageBox("스윕 범위를 올바르게 설정해주세요."); return; }
 
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
-            combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)) });
+            for (let cfg of tradeConfigs) {
+                combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)), tradeConfig: cfg });
+            }
         }
     }
-
     const total = combinations.length;
-    if (total === 0) {
-        alert("스윕 가능한 경우의 수가 존재하지 않습니다.");
-        btn.disabled = false;
-        btn.innerText = "단일 기간 최적값 스윕 시작";
-        return;
-    }
+    if (total === 0) { showMessageBox("스윕 가능한 경우의 수가 존재하지 않습니다."); return; }
+
+    btn.disabled = true; btn.innerText = "데이터 로딩 중...";
+    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { progContainer.style.display = 'block'; progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%"; progText.innerText = `로딩 중... (${attempt}/${maxRetries})`; btn.innerText = "로딩 대기 중..."; } });
+    if (rawData.length === 0) { showMessageBox(getDataLoadFailureMessage()); btn.disabled = false; btn.innerText = "최적값 스윕 시작"; progContainer.style.display = 'none'; return; }
 
     progContainer.style.display = 'block';
     let results = [];
     let currentIndex = 0;
+    const chunkSize = 50; 
 
     async function executeChunk() {
-        const chunkSize = 25; 
         const limit = Math.min(currentIndex + chunkSize, total);
-
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
-            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
+            const calc = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, comb.tradeConfig, monthlyInvest);
             results.push({
-                N: comb.N,
-                SIGMA: comb.SIGMA,
-                totalInvested: calc.totalInvested,
-                cash: calc.cash,
-                finalSharesValue: calc.finalSharesValue,
-                finalTotalAssets: calc.finalTotalAssets,
-                shares: calc.shares,
-                yieldPer: calc.yieldPer,
-                cagr: calc.cagr,
-                tradeCount: calc.tradeCount,
-                buyCount: calc.buyCount,
-                sellCount: calc.sellCount,
-                mdd: calc.mdd
+                N: comb.N, SIGMA: comb.SIGMA, tradeConfig: comb.tradeConfig,
+                totalInvested: calc.totalInvested, cash: calc.cash, finalSharesValue: calc.finalSharesValue, finalTotalAssets: calc.finalTotalAssets, shares: calc.shares, yieldPer: calc.yieldPer, cagr: calc.cagr, tradeCount: calc.tradeCount, buyCount: calc.buyCount, sellCount: calc.sellCount, mdd: calc.mdd
             });
         }
-
         const percentage = Math.round((currentIndex / total) * 100);
-        progBar.style.width = percentage + "%";
-        progText.innerText = `병렬 연산 가동 중... (${currentIndex} / ${total}) - ${percentage}%`;
+        progBar.style.width = percentage + "%"; progText.innerText = `최적화 연산 중... (${currentIndex} / ${total}) - ${percentage}%`;
 
-        if (currentIndex < total) {
-            await new Promise(resolve => setTimeout(resolve, 1));
-            await executeChunk();
-        } else {
-            btn.disabled = false;
-            btn.innerText = "단일 기간 최적값 스윕 시작";
-            progContainer.style.display = 'none';
-
+        if (currentIndex < total) { await new Promise(resolve => setTimeout(resolve, 0)); await executeChunk(); } 
+        else {
+            btn.disabled = false; btn.innerText = "최적값 스윕 시작"; progContainer.style.display = 'none';
             results.sort((a, b) => b.yieldPer - a.yieldPer);
-            
-            hasSweepRun = true;
-            renderSweepTable(results, ticker);
+            hasSweepRun = true; renderSweepTable(results, ticker);
         }
     }
-
     await executeChunk();
 }
 
 function renderSweepTable(results, ticker) {
-    const tableBody = document.getElementById('sweepTableBody');
-    tableBody.innerHTML = '';
-
+    const tableBody = document.getElementById('sweepTableBody'); tableBody.innerHTML = '';
     results.forEach((res, index) => {
-        const rank = index + 1;
-        const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
-        const yieldPrefix = res.yieldPer > 0 ? "+" : "";
-        
-        const cagrColor = res.cagr >= 0 ? "#ff4d4d" : "#3498db";
-        const cagrPrefix = res.cagr > 0 ? "+" : "";
-        
+        const yieldColor = res.yieldPer >= 0 ? "#ff4d4d" : "#3498db", yieldPrefix = res.yieldPer > 0 ? "+" : "";
+        const cagrColor = res.cagr >= 0 ? "#ff4d4d" : "#3498db", cagrPrefix = res.cagr > 0 ? "+" : "";
         const sharesDisp = ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(4) + "주" : res.shares + "주";
 
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
+            <td style="font-weight:bold; color:var(--primary-color);">${index + 1}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
+            <td style="font-size:11px; line-height:1.3; text-align:left; padding:6px;">
+                <span style="color:#e74c3c;">매수: ${res.tradeConfig.buyBelowEma}/${res.tradeConfig.buyBelowDn1}/${res.tradeConfig.buyBelowDn2}</span><br>
+                <span style="color:#3498db;">매도: ${res.tradeConfig.sellAboveUp1}/${res.tradeConfig.sellAboveUp2}</span>
+            </td>
             <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td>$${res.cash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td>${sharesDisp}</td>
@@ -1536,203 +1127,136 @@ function renderSweepTable(results, ticker) {
         `;
 
         row.onclick = function() {
+            document.getElementById('trade_strategy_mode').value = 'manual';
+            toggleStrategyMode();
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
+            document.getElementById('buy_ema_qty').value = res.tradeConfig.buyBelowEma;
+            document.getElementById('buy_dn1_qty').value = res.tradeConfig.buyBelowDn1;
+            document.getElementById('buy_dn2_qty').value = res.tradeConfig.buyBelowDn2;
+            document.getElementById('sell_up1_qty').value = res.tradeConfig.sellAboveUp1;
+            document.getElementById('sell_up2_qty').value = res.tradeConfig.sellAboveUp2;
+            switchTab('single_tab'); // 상세 확인을 위해 단일 탭으로 전환
             runSingleBacktest();
         };
-
         tableBody.appendChild(row);
     });
-
     document.getElementById('sweepResultsArea').style.display = 'block';
 }
 
-// ⏳ [다중 기간 분할 스윕 가동 엔진]
+// ⏳ [다중 기간 분할 스윕]
 async function runRobustSweep() {
+    // 혹시라도 뚫고 들어오면 블락처리
+    if (document.getElementById('trade_strategy_mode').value === 'sweep') {
+        showMessageBox("매수/매도 수량 스윕(최적화) 모드에서는 연산량이 과도하여 다중 기간 분할 스윕을 지원하지 않습니다. 기본 설정에서 '수동 고정값 설정'으로 변경해주세요.");
+        return;
+    }
+
     const btn = document.getElementById('robustSweepBtn');
-    const progContainer = document.getElementById('robustProgressContainer');
-    const progBar = document.getElementById('robustProgressBar');
-    const progText = document.getElementById('robustProgressText');
-
-    const ticker = document.getElementById('ticker').value;
-    const startDate = document.getElementById('start_date').value;
-    const endDate = document.getElementById('end_date').value;
-    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10;
+    const progContainer = document.getElementById('robustProgressContainer'), progBar = document.getElementById('robustProgressBar'), progText = document.getElementById('robustProgressText');
+    const ticker = document.getElementById('ticker').value, startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
+    const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
-    const initCash = parseFloat(document.getElementById('init_cash').value) || 35000;
-    const monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
-    
-    const tradeConfig = getTradeConfig();
+    const tradeConfigs = getAllTradeConfigs();
+    const nStart = parseInt(document.getElementById('rn_start').value), nEnd = parseInt(document.getElementById('rn_end').value), nStep = parseInt(document.getElementById('rn_step').value);
+    const sStart = parseFloat(document.getElementById('rs_start').value), sEnd = parseFloat(document.getElementById('rs_end').value), sStep = parseFloat(document.getElementById('rs_step').value);
 
-    const nStart = parseInt(document.getElementById('rn_start').value);
-    const nEnd = parseInt(document.getElementById('rn_end').value);
-    const nStep = parseInt(document.getElementById('rn_step').value);
-
-    const sStart = parseFloat(document.getElementById('rs_start').value);
-    const sEnd = parseFloat(document.getElementById('rs_end').value);
-    const sStep = parseFloat(document.getElementById('rs_step').value);
-
-    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) {
-        alert("다중 스윕 구간 범위를 올바르게 설정해주세요.");
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerText = "전체 데이터 파싱 중...";
-    
-    const rawData = await fetchAndParseData(ticker, endDate, {
-        onRetry: ({ attempt, maxRetries, retryDelayMs }) => {
-            progContainer.style.display = 'block';
-            progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%";
-            progText.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries}) - ${retryDelayMs / 1000}초 후 재시도`;
-            btn.innerText = "시트 로딩 대기 중...";
-        }
-    });
-    if (rawData.length === 0) {
-        alert(getDataLoadFailureMessage());
-        btn.disabled = false;
-        btn.innerText = "다중 기간 분할 스윕 시작";
-        progContainer.style.display = 'none';
-        return;
-    }
+    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0 || tradeConfigs.length === 0) { showMessageBox("다중 스윕 범위를 올바르게 설정해주세요."); return; }
 
     const periods = partitionPeriods(startDate, endDate);
-    if (periods.length === 0) {
-        alert("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요.");
-        btn.disabled = false;
-        btn.innerText = "다중 기간 분할 스윕 시작";
-        return;
-    }
+    if (periods.length === 0) { showMessageBox("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요."); return; }
 
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
-            combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)) });
+            for (let cfg of tradeConfigs) {
+                combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)), tradeConfig: cfg });
+            }
         }
     }
-
     const total = combinations.length;
-    if (total === 0) {
-        alert("다중 스윕 가능한 경우의 수가 존재하지 않습니다.");
-        btn.disabled = false;
-        btn.innerText = "다중 기간 분할 스윕 시작";
-        return;
-    }
+    if (total === 0) { showMessageBox("다중 스윕 가능한 경우의 수가 존재하지 않습니다."); return; }
+
+    btn.disabled = true; btn.innerText = "전체 데이터 파싱 중...";
+    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { progContainer.style.display = 'block'; progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%"; progText.innerText = `로딩 중... (${attempt}/${maxRetries})`; btn.innerText = "로딩 대기 중..."; } });
+    if (rawData.length === 0) { showMessageBox(getDataLoadFailureMessage()); btn.disabled = false; btn.innerText = "다중 기간 분할 스윕 시작"; progContainer.style.display = 'none'; return; }
 
     progContainer.style.display = 'block';
     let robustResults = [];
     let currentIndex = 0;
+    const chunkSize = 25; 
+
+    const cache = {};
 
     async function executeRobustChunk() {
-        const chunkSize = 15; 
         const limit = Math.min(currentIndex + chunkSize, total);
-
         for (; currentIndex < limit; currentIndex++) {
             const comb = combinations[currentIndex];
+            const cacheKey = `${comb.N}_${comb.SIGMA}`;
             
-            const calcFull = executeBacktestCore(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
-
-            const prices = rawData.map(d => d.close);
-            const globalEma = calculateEMA(prices, comb.N);
-            
-            let globalUp1 = [], globalDn1 = [], globalUp2 = [], globalDn2 = [];
-            for (let i = 0; i < rawData.length; i++) {
-                let curEMA = globalEma[i];
-                let curSD = calculateStdDev(prices, i, comb.N);
-                globalUp1.push(curEMA + comb.SIGMA * curSD);
-                globalDn1.push(curEMA - comb.SIGMA * curSD);
-                globalUp2.push(curEMA + 2 * comb.SIGMA * curSD);
-                globalDn2.push(curEMA - 2 * comb.SIGMA * curSD);
+            let globalEma, globalUp1, globalDn1, globalUp2, globalDn2;
+            if (cache[cacheKey]) {
+                ({ globalEma, globalUp1, globalDn1, globalUp2, globalDn2 } = cache[cacheKey]);
+            } else {
+                const prices = rawData.map(d => d.close);
+                globalEma = calculateEMA(prices, comb.N);
+                globalUp1 = []; globalDn1 = []; globalUp2 = []; globalDn2 = [];
+                for (let i = 0; i < rawData.length; i++) {
+                    let curEMA = globalEma[i], curSD = calculateStdDev(prices, i, comb.N);
+                    globalUp1.push(curEMA + comb.SIGMA * curSD); globalDn1.push(curEMA - comb.SIGMA * curSD);
+                    globalUp2.push(curEMA + 2 * comb.SIGMA * curSD); globalDn2.push(curEMA - 2 * comb.SIGMA * curSD);
+                }
+                cache[cacheKey] = { globalEma, globalUp1, globalDn1, globalUp2, globalDn2 };
             }
 
-            let periodYields = [];
-            let periodMdds = [];
-            let periodTrades = [];
-
+            let periodYields = [], periodMdds = [], periodTrades = [];
             periods.forEach(p => {
-                const segResult = executeBacktestSegment(
-                    rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, p.start, p.end,
-                    globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, tradeConfig, monthlyInvest
-                );
-                periodYields.push(segResult.yieldPer);
-                periodMdds.push(segResult.mdd);
-                periodTrades.push(segResult.tradeCount);
+                const segResult = executeBacktestSegment(rawData, comb.N, comb.SIGMA, btcUnitValue, ticker, p.start, p.end, globalEma, globalUp1, globalDn1, globalUp2, globalDn2, initCash, comb.tradeConfig, monthlyInvest);
+                periodYields.push(segResult.yieldPer); periodMdds.push(segResult.mdd); periodTrades.push(segResult.tradeCount);
             });
 
             const avgYield = periodYields.reduce((a, b) => a + b, 0) / periodYields.length;
             const winRate = (periodYields.filter(y => y > 0).length / periodYields.length) * 100;
             const avgMdd = periodMdds.reduce((a, b) => a + b, 0) / periodMdds.length;
-            const worstYield = Math.min(...periodYields);
-            const bestYield = Math.max(...periodYields);
+            const worstYield = Math.min(...periodYields), bestYield = Math.max(...periodYields);
             const avgTrades = periodTrades.reduce((a, b) => a + b, 0) / periodTrades.length;
 
             robustResults.push({
-                N: comb.N,
-                SIGMA: comb.SIGMA,
-                avgYield,
-                winRate,
-                avgMdd,
-                worstYield,
-                bestYield,
-                avgTrades,
-                totalInvested: calcFull.totalInvested,
-                cash: calcFull.cash,
-                finalSharesValue: calcFull.finalSharesValue,
-                finalTotalAssets: calcFull.finalTotalAssets,
-                shares: calcFull.shares,
-                yieldPer: calcFull.yieldPer,
-                cagr: calcFull.cagr,
-                tradeCount: calcFull.tradeCount,
-                buyCount: calcFull.buyCount,
-                sellCount: calcFull.sellCount,
-                mdd: calcFull.mdd
+                N: comb.N, SIGMA: comb.SIGMA, tradeConfig: comb.tradeConfig,
+                avgYield, winRate, avgMdd, worstYield, bestYield, avgTrades
             });
         }
 
         const percentage = Math.round((currentIndex / total) * 100);
-        progBar.style.width = percentage + "%";
-        progText.innerText = `다중 기간 통계 스윕 연산 중... (${currentIndex} / ${total}) - ${percentage}%`;
+        progBar.style.width = percentage + "%"; progText.innerText = `다중 기간 통계 최적화 중... (${currentIndex} / ${total}) - ${percentage}%`;
 
-        if (currentIndex < total) {
-            await new Promise(resolve => setTimeout(resolve, 1));
-            await executeRobustChunk();
-        } else {
-            btn.disabled = false;
-            btn.innerText = "다중 기간 분할 스윕 시작";
-            progContainer.style.display = 'none';
-
-            // V11.6: 원래 의도대로 '평균 수익률(avgYield)' 기준으로 랭킹 재정렬
+        if (currentIndex < total) { await new Promise(resolve => setTimeout(resolve, 0)); await executeRobustChunk(); } 
+        else {
+            btn.disabled = false; btn.innerText = "다중 기간 분할 스윕 시작"; progContainer.style.display = 'none';
             robustResults.sort((a, b) => b.avgYield - a.avgYield);
-            
-            hasRobustSweepRun = true;
-            renderRobustTable(robustResults, periods);
+            hasRobustSweepRun = true; renderRobustTable(robustResults, periods);
         }
     }
-
     await executeRobustChunk();
 }
 
 function renderRobustTable(results, periods) {
-    const tableBody = document.getElementById('robustTableBody');
-    tableBody.innerHTML = '';
-
-    // V11.6: 평균 수익률이 몇 년치의 평균인지 동적으로 헤더에 반영
+    const tableBody = document.getElementById('robustTableBody'); tableBody.innerHTML = '';
     document.getElementById('dynamicAvgYieldHeader').innerText = `${periods.length}년 평균 수익률`;
     document.getElementById('robustPeriodInfo').innerText = `📊 분석된 비중복 분할 연도: 총 ${periods.length}개 구간 (※ 순위 기준: ${periods.length}년 평균 수익률 높은 순)`;
 
     results.forEach((res, index) => {
-        const rank = index + 1;
-        
-        const avgYieldColor = res.avgYield >= 0 ? "#ff4d4d" : "#3498db";
-        const worstColor = res.worstYield >= 0 ? "#ff4d4d" : "#3498db";
-        const bestColor = res.bestYield >= 0 ? "#ff4d4d" : "#3498db";
+        const avgYieldColor = res.avgYield >= 0 ? "#ff4d4d" : "#3498db", worstColor = res.worstYield >= 0 ? "#ff4d4d" : "#3498db", bestColor = res.bestYield >= 0 ? "#ff4d4d" : "#3498db";
 
         const row = document.createElement('tr');
-        // V11.6: 다중 분할 스윕 본래의 지표 항목들(승률, 평균 MDD, 최악/최고의 구간 등)로 테이블 복구 
         row.innerHTML = `
-            <td style="font-weight:bold; color:var(--primary-color);">${rank}위</td>
+            <td style="font-weight:bold; color:var(--primary-color);">${index + 1}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
+            <td style="font-size:11px; line-height:1.3; text-align:left; padding:6px;">
+                <span style="color:#e74c3c;">매수: ${res.tradeConfig.buyBelowEma}/${res.tradeConfig.buyBelowDn1}/${res.tradeConfig.buyBelowDn2}</span><br>
+                <span style="color:#3498db;">매도: ${res.tradeConfig.sellAboveUp1}/${res.tradeConfig.sellAboveUp2}</span>
+            </td>
             <td style="color:${avgYieldColor}; font-weight:bold;">${res.avgYield > 0 ? "+" : ""}${res.avgYield.toFixed(2)}%</td>
             <td style="font-weight:bold; color:#16a085;">${res.winRate.toFixed(1)}%</td>
             <td style="color:#e67e22; font-weight:bold;">-${res.avgMdd.toFixed(2)}%</td>
@@ -1742,23 +1266,24 @@ function renderRobustTable(results, periods) {
         `;
 
         row.onclick = function() {
+            document.getElementById('trade_strategy_mode').value = 'manual';
+            toggleStrategyMode();
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
+            document.getElementById('buy_ema_qty').value = res.tradeConfig.buyBelowEma;
+            document.getElementById('buy_dn1_qty').value = res.tradeConfig.buyBelowDn1;
+            document.getElementById('buy_dn2_qty').value = res.tradeConfig.buyBelowDn2;
+            document.getElementById('sell_up1_qty').value = res.tradeConfig.sellAboveUp1;
+            document.getElementById('sell_up2_qty').value = res.tradeConfig.sellAboveUp2;
+            switchTab('single_tab');
             runSingleBacktest();
         };
-
         tableBody.appendChild(row);
     });
-
     document.getElementById('robustResultsArea').style.display = 'block';
 }
 
-window.addEventListener('resize', () => { 
-    if (chartInstance) {
-        const chartContainer = document.getElementById('chartArea');
-        chartInstance.resize(chartContainer.clientWidth, 400); 
-    }
-});
+window.addEventListener('resize', () => { if (chartInstance) { chartInstance.resize(document.getElementById('chartArea').clientWidth, 400); } });
 </script>
 </body>
 </html>
