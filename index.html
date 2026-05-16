@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v11.9</title>
+    <title>퀀트 백테스터 Pro v12.2</title>
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -131,7 +131,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v11.9</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v12.2</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -158,14 +158,6 @@
             <div class="input-group">
                 <label for="monthly_invest">매월 적립액 ($)</label>
                 <input type="number" id="monthly_invest" value="400" min="0" step="100">
-            </div>
-
-            <div class="input-group">
-                <label for="trade_strategy_mode">매수/매도 전략 모드</label>
-                <select id="trade_strategy_mode" onchange="toggleStrategyMode()">
-                    <option value="manual">수동 고정값 설정</option>
-                    <option value="sweep">모든 조합 스윕 (최적화)</option>
-                </select>
             </div>
         </div>
 
@@ -242,37 +234,6 @@
                 </div>
             </div>
         </div>
-
-        <div id="sweep_strategy_ui" style="display: none;">
-            <p style="font-size: 13px; color: #e74c3c; font-weight: bold; margin: 0 0 14px 0;">
-                ※ 스윕할 각 구간의 최대 수량(N)을 입력하세요. 0부터 N까지의 모든 경우의 수를 테스트합니다.<br>
-                <span style="font-size: 11px; color: var(--text-sub); font-weight: normal;">(경고: 최대값이 높을수록 경우의 수가 기하급수적으로 늘어나 분석 시간이 오래 걸릴 수 있습니다.)</span>
-            </p>
-            <div class="input-row">
-                <div class="input-group">
-                    <label>최대 매수: EMA ~ -1σ (0~N)</label>
-                    <input type="number" id="s_buy_ema_max" value="1" min="0" step="1">
-                </div>
-                <div class="input-group">
-                    <label>최대 매수: -1σ ~ -2σ (0~N)</label>
-                    <input type="number" id="s_buy_dn1_max" value="2" min="0" step="1">
-                </div>
-                <div class="input-group">
-                    <label>최대 매수: -2σ 이하 (0~N)</label>
-                    <input type="number" id="s_buy_dn2_max" value="3" min="0" step="1">
-                </div>
-            </div>
-            <div class="input-row" style="margin-bottom: 0;">
-                <div class="input-group">
-                    <label>최대 매도: +1σ ~ +2σ (0~N)</label>
-                    <input type="number" id="s_sell_up1_max" value="1" min="0" step="1">
-                </div>
-                <div class="input-group">
-                    <label>최대 매도: +2σ 이상 (0~N)</label>
-                    <input type="number" id="s_sell_up2_max" value="1" min="0" step="1">
-                </div>
-            </div>
-        </div>
     </div>
 
     <div class="card">
@@ -339,9 +300,6 @@
             <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">
                 ※ 선택한 날짜 구간을 <b>1년 단위 분할 기간들</b>로 분리하여 평균적인 시장 대응력을 순위로 나타냅니다.
             </h4>
-            <p id="robustWarning" style="display:none; color:#e74c3c; font-size:12px; font-weight:bold; margin-bottom:10px; padding:8px; background:rgba(231, 76, 60, 0.1); border-radius:6px; border:1px solid #e74c3c;">
-                ⚠️ 매수/매도 수량 스윕(최적화) 모드에서는 조합이 기하급수적으로 늘어나 다중 기간 분할 스윕 기능을 사용할 수 없습니다. (1단계에서 '수동 고정값 설정'으로 변경해주세요)
-            </p>
             <div class="input-row">
                 <div class="input-group">
                     <label>N 시작값</label>
@@ -391,14 +349,13 @@
                         <th>순위</th>
                         <th>N</th>
                         <th>SIGMA</th>
-                        <th style="min-width: 90px;">전략(수량)</th>
                         <th>총 투자 금액</th>
                         <th>보유 현금</th>
                         <th>보유 수량</th>
                         <th>환산 금액</th>
                         <th>총자산</th>
                         <th>전체 총 수익률</th>
-                        <th>전체 CAGR</th>
+                        <th>연평균 복리 수익률(CAGR)</th>
                         <th>MDD (최대 낙폭)</th>
                         <th>총 거래</th>
                         <th>매수</th>
@@ -422,7 +379,6 @@
                         <th>순위</th>
                         <th>N</th>
                         <th>SIGMA</th>
-                        <th style="min-width: 90px;">전략(수량)</th>
                         <th id="dynamicAvgYieldHeader">평균 수익률</th>
                         <th>승률(수익)</th>
                         <th>평균 MDD</th>
@@ -469,7 +425,7 @@
                 <span id="resYield" class="stats-value" style="font-size: 16px;">0.00%</span>
             </div>
             <div class="stats-box">
-                <span class="stats-label">연평균 수익률 (CAGR)</span>
+                <span class="stats-label">연평균 복리 수익률 (CAGR)</span>
                 <span id="resCagr" class="stats-value" style="font-size: 16px;">0.00%</span>
             </div>
         </div>
@@ -516,30 +472,6 @@ function handleTickerChange() {
     }
 }
 
-function toggleStrategyMode() {
-    const mode = document.getElementById('trade_strategy_mode').value;
-    const robustBtn = document.getElementById('robustSweepBtn');
-    const robustWarning = document.getElementById('robustWarning');
-    
-    if (mode === 'manual') {
-        document.getElementById('manual_strategy_ui').style.display = 'block';
-        document.getElementById('sweep_strategy_ui').style.display = 'none';
-        
-        // 다중 기간 스윕 버튼 활성화
-        robustBtn.disabled = false;
-        robustBtn.innerText = "다중 기간 분할 스윕 시작";
-        if(robustWarning) robustWarning.style.display = 'none';
-    } else {
-        document.getElementById('manual_strategy_ui').style.display = 'none';
-        document.getElementById('sweep_strategy_ui').style.display = 'block';
-        
-        // 스윕 모드일 때 다중 기간 스윕 강제 차단 및 경고 표시
-        robustBtn.disabled = true;
-        robustBtn.innerText = "수량 스윕 모드에서는 다중스윕 불가";
-        if(robustWarning) robustWarning.style.display = 'block';
-    }
-}
-
 function switchTab(tabId) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -570,7 +502,6 @@ window.onload = function() {
     document.getElementById('start_date').value = "2024-05-09";
     document.getElementById('end_date').value = new Date().toISOString().split('T')[0];
     handleTickerChange();
-    toggleStrategyMode();
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         toggleTheme();
     }
@@ -767,55 +698,24 @@ function calculateStdDev(prices, idx, n) {
     return Math.sqrt(slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n);
 }
 
-// 🎯 전략 조합 생성기
-function getAllTradeConfigs() {
-    let configs = [];
-    const mode = document.getElementById('trade_strategy_mode').value;
-    
-    if (mode === 'manual') {
-        configs.push({
-            buyBelowEma: parseInt(document.getElementById('buy_ema_qty').value) || 0,
-            buyBelowDn1: parseInt(document.getElementById('buy_dn1_qty').value) || 0,
-            buyBelowDn2: parseInt(document.getElementById('buy_dn2_qty').value) || 0,
-            sellAboveUp1: parseInt(document.getElementById('sell_up1_qty').value) || 0,
-            sellAboveUp2: parseInt(document.getElementById('sell_up2_qty').value) || 0
-        });
-    } else {
-        const maxE = parseInt(document.getElementById('s_buy_ema_max').value) || 0;
-        const maxD1 = parseInt(document.getElementById('s_buy_dn1_max').value) || 0;
-        const maxD2 = parseInt(document.getElementById('s_buy_dn2_max').value) || 0;
-        const maxU1 = parseInt(document.getElementById('s_sell_up1_max').value) || 0;
-        const maxU2 = parseInt(document.getElementById('s_sell_up2_max').value) || 0;
-
-        for (let e = 0; e <= maxE; e++) {
-            for (let d1 = 0; d1 <= maxD1; d1++) {
-                for (let d2 = 0; d2 <= maxD2; d2++) {
-                    for (let u1 = 0; u1 <= maxU1; u1++) {
-                        for (let u2 = 0; u2 <= maxU2; u2++) {
-                            // 전부 거래 안하는 케이스는 스킵해도 좋으나 허용
-                            configs.push({ buyBelowEma: e, buyBelowDn1: d1, buyBelowDn2: d2, sellAboveUp1: u1, sellAboveUp2: u2 });
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return configs;
+// 🎯 단일 전략 설정 반환
+function getTradeConfig() {
+    return {
+        buyBelowEma: parseInt(document.getElementById('buy_ema_qty').value) || 0,
+        buyBelowDn1: parseInt(document.getElementById('buy_dn1_qty').value) || 0,
+        buyBelowDn2: parseInt(document.getElementById('buy_dn2_qty').value) || 0,
+        sellAboveUp1: parseInt(document.getElementById('sell_up1_qty').value) || 0,
+        sellAboveUp2: parseInt(document.getElementById('sell_up2_qty').value) || 0
+    };
 }
 
 function getTradeSignals(curPrice, curEMA, curUp1, curDn1, curUp2, curDn2, config) {
     let buySignal = 0, sellSignal = 0, signalLevel = '';
     
-    // 명확해진 구간 로직:
-    // 1. -2σ 미만
     if (curPrice < curDn2) { buySignal = config.buyBelowDn2; signalLevel = 'dn2'; }
-    // 2. -1σ 미만 ~ -2σ 이상
     else if (curPrice < curDn1) { buySignal = config.buyBelowDn1; signalLevel = 'dn1'; }
-    // 3. EMA 미만 ~ -1σ 이상
     else if (curPrice < curEMA) { buySignal = config.buyBelowEma; signalLevel = 'ema'; }
-    // 4. +2σ 초과
     else if (curPrice > curUp2) { sellSignal = config.sellAboveUp2; signalLevel = 'up2'; }
-    // 5. +1σ 초과 ~ +2σ 이하
     else if (curPrice > curUp1) { sellSignal = config.sellAboveUp1; signalLevel = 'up1'; }
     
     return { buySignal, sellSignal, signalLevel };
@@ -1023,22 +923,29 @@ function closeModal() { document.getElementById('detailModal').style.display = '
 
 // 🎯 [단일 백테스트]
 async function runSingleBacktest() {
-    const btn = document.querySelector('#single_tab .main-btn'); btn.innerText = "데이터 분석 중...";
+    const btn = document.querySelector('#single_tab .main-btn'); 
+    btn.innerText = "데이터 분석 중...";
+    document.body.style.cursor = 'wait';
+
     const ticker = document.getElementById('ticker').value, N = parseInt(document.getElementById('n_days').value), SIGMA = parseFloat(document.getElementById('sigma').value);
     const startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
-    // 단일 실행은 첫번째 전략 설정만 사용
-    const tradeConfigs = getAllTradeConfigs();
-    if(tradeConfigs.length === 0) { showMessageBox("전략 설정이 올바르지 않습니다."); btn.innerText = "백테스트 실행 및 차트 그리기"; return; }
-    const tradeConfig = tradeConfigs[0];
+    const tradeConfig = getTradeConfig();
 
     const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { btn.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries})`; } });
-    if (rawData.length === 0) { showMessageBox(getDataLoadFailureMessage()); btn.innerText = "백테스트 실행 및 차트 그리기"; return; }
+    if (rawData.length === 0) { 
+        showMessageBox(getDataLoadFailureMessage()); 
+        btn.innerText = "백테스트 실행 및 차트 그리기"; 
+        document.body.style.cursor = 'default';
+        return; 
+    }
 
     const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
     openDetailModal(calc.slicedCandles, calc, N, SIGMA, ticker);
+    
     btn.innerText = "백테스트 실행 및 차트 그리기";
+    document.body.style.cursor = 'default';
 }
 
 // ⚡ [단일 기간 스윕]
@@ -1048,18 +955,16 @@ async function runParameterSweep() {
     const ticker = document.getElementById('ticker').value, startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
-    const tradeConfigs = getAllTradeConfigs();
+    const tradeConfig = getTradeConfig();
     const nStart = parseInt(document.getElementById('n_start').value), nEnd = parseInt(document.getElementById('n_end').value), nStep = parseInt(document.getElementById('n_step').value);
     const sStart = parseFloat(document.getElementById('s_start').value), sEnd = parseFloat(document.getElementById('s_end').value), sStep = parseFloat(document.getElementById('s_step').value);
 
-    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0 || tradeConfigs.length === 0) { showMessageBox("스윕 범위를 올바르게 설정해주세요."); return; }
+    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) { showMessageBox("스윕 범위를 올바르게 설정해주세요."); return; }
 
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
-            for (let cfg of tradeConfigs) {
-                combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)), tradeConfig: cfg });
-            }
+            combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)), tradeConfig: tradeConfig });
         }
     }
     const total = combinations.length;
@@ -1109,10 +1014,6 @@ function renderSweepTable(results, ticker) {
             <td style="font-weight:bold; color:var(--primary-color);">${index + 1}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
-            <td style="font-size:11px; line-height:1.3; text-align:left; padding:6px;">
-                <span style="color:#e74c3c;">매수: ${res.tradeConfig.buyBelowEma}/${res.tradeConfig.buyBelowDn1}/${res.tradeConfig.buyBelowDn2}</span><br>
-                <span style="color:#3498db;">매도: ${res.tradeConfig.sellAboveUp1}/${res.tradeConfig.sellAboveUp2}</span>
-            </td>
             <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td>$${res.cash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td>${sharesDisp}</td>
@@ -1127,16 +1028,8 @@ function renderSweepTable(results, ticker) {
         `;
 
         row.onclick = function() {
-            document.getElementById('trade_strategy_mode').value = 'manual';
-            toggleStrategyMode();
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
-            document.getElementById('buy_ema_qty').value = res.tradeConfig.buyBelowEma;
-            document.getElementById('buy_dn1_qty').value = res.tradeConfig.buyBelowDn1;
-            document.getElementById('buy_dn2_qty').value = res.tradeConfig.buyBelowDn2;
-            document.getElementById('sell_up1_qty').value = res.tradeConfig.sellAboveUp1;
-            document.getElementById('sell_up2_qty').value = res.tradeConfig.sellAboveUp2;
-            switchTab('single_tab'); // 상세 확인을 위해 단일 탭으로 전환
             runSingleBacktest();
         };
         tableBody.appendChild(row);
@@ -1146,22 +1039,16 @@ function renderSweepTable(results, ticker) {
 
 // ⏳ [다중 기간 분할 스윕]
 async function runRobustSweep() {
-    // 혹시라도 뚫고 들어오면 블락처리
-    if (document.getElementById('trade_strategy_mode').value === 'sweep') {
-        showMessageBox("매수/매도 수량 스윕(최적화) 모드에서는 연산량이 과도하여 다중 기간 분할 스윕을 지원하지 않습니다. 기본 설정에서 '수동 고정값 설정'으로 변경해주세요.");
-        return;
-    }
-
     const btn = document.getElementById('robustSweepBtn');
     const progContainer = document.getElementById('robustProgressContainer'), progBar = document.getElementById('robustProgressBar'), progText = document.getElementById('robustProgressText');
     const ticker = document.getElementById('ticker').value, startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
-    const tradeConfigs = getAllTradeConfigs();
+    const tradeConfig = getTradeConfig();
     const nStart = parseInt(document.getElementById('rn_start').value), nEnd = parseInt(document.getElementById('rn_end').value), nStep = parseInt(document.getElementById('rn_step').value);
     const sStart = parseFloat(document.getElementById('rs_start').value), sEnd = parseFloat(document.getElementById('rs_end').value), sStep = parseFloat(document.getElementById('rs_step').value);
 
-    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0 || tradeConfigs.length === 0) { showMessageBox("다중 스윕 범위를 올바르게 설정해주세요."); return; }
+    if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) { showMessageBox("다중 스윕 범위를 올바르게 설정해주세요."); return; }
 
     const periods = partitionPeriods(startDate, endDate);
     if (periods.length === 0) { showMessageBox("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요."); return; }
@@ -1169,9 +1056,7 @@ async function runRobustSweep() {
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
         for (let s = sStart; s <= sEnd; s += sStep) {
-            for (let cfg of tradeConfigs) {
-                combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)), tradeConfig: cfg });
-            }
+            combinations.push({ N: n, SIGMA: parseFloat(s.toFixed(2)), tradeConfig: tradeConfig });
         }
     }
     const total = combinations.length;
@@ -1253,10 +1138,6 @@ function renderRobustTable(results, periods) {
             <td style="font-weight:bold; color:var(--primary-color);">${index + 1}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
-            <td style="font-size:11px; line-height:1.3; text-align:left; padding:6px;">
-                <span style="color:#e74c3c;">매수: ${res.tradeConfig.buyBelowEma}/${res.tradeConfig.buyBelowDn1}/${res.tradeConfig.buyBelowDn2}</span><br>
-                <span style="color:#3498db;">매도: ${res.tradeConfig.sellAboveUp1}/${res.tradeConfig.sellAboveUp2}</span>
-            </td>
             <td style="color:${avgYieldColor}; font-weight:bold;">${res.avgYield > 0 ? "+" : ""}${res.avgYield.toFixed(2)}%</td>
             <td style="font-weight:bold; color:#16a085;">${res.winRate.toFixed(1)}%</td>
             <td style="color:#e67e22; font-weight:bold;">-${res.avgMdd.toFixed(2)}%</td>
@@ -1266,16 +1147,8 @@ function renderRobustTable(results, periods) {
         `;
 
         row.onclick = function() {
-            document.getElementById('trade_strategy_mode').value = 'manual';
-            toggleStrategyMode();
             document.getElementById('n_days').value = res.N;
             document.getElementById('sigma').value = res.SIGMA;
-            document.getElementById('buy_ema_qty').value = res.tradeConfig.buyBelowEma;
-            document.getElementById('buy_dn1_qty').value = res.tradeConfig.buyBelowDn1;
-            document.getElementById('buy_dn2_qty').value = res.tradeConfig.buyBelowDn2;
-            document.getElementById('sell_up1_qty').value = res.tradeConfig.sellAboveUp1;
-            document.getElementById('sell_up2_qty').value = res.tradeConfig.sellAboveUp2;
-            switchTab('single_tab');
             runSingleBacktest();
         };
         tableBody.appendChild(row);
