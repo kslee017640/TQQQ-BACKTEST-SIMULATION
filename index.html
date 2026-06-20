@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v13.9</title>
+    <title>퀀트 백테스터 Pro v14.0</title>
+    <!-- v14.0 CODEX: 환율을 결과표 상단에서 한 번만 표시/수정하게 하고 발동 횟수를 1~5차 열로 분리했습니다. -->
     <!-- v13.9 CODEX: 묶음 비교 기본 입력값을 조정하고 EMA/시그마 전략을 적립식 월투자금 기준으로 계산하도록 변경했습니다. -->
     <!-- v13.8 CODEX: 원화 억원 보조 표기에 현재 USD/KRW 환율을 자동 반영하도록 추가했습니다. -->
     <!-- v13.7 CODEX: 최종자산과 투입금 달러 표기 아래에 원화 억원 환산 보조 표기를 추가했습니다. -->
@@ -173,7 +174,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.9</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v14.0</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -529,6 +530,12 @@
     <div id="bundleResultsArea" class="card bundle-mode-section" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">📊 1배/2배/3배 묶음 투자 비교 결과</h2>
         <p id="bundleResultInfo" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;"></p>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px; font-size:13px; color:var(--text-main);">
+            <label for="usd_krw_rate_input" style="font-weight:bold;">원화 환산 기준 환율</label>
+            <input type="number" id="usd_krw_rate_input" value="1500" min="1" step="0.01" style="width:130px; padding:7px 9px;" onchange="handleUsdKrwRateInput()" oninput="handleUsdKrwRateInput()">
+            <span>원/USD</span>
+            <span id="usdKrwRateStatus" style="color:var(--text-sub);">현재 환율 확인 중...</span>
+        </div>
         <div id="bundleSummaryChart" class="bundle-summary"></div>
         <div class="table-container bundle-table-container">
             <table class="sweep-table bundle-results-table">
@@ -544,7 +551,12 @@
                         <th>수익률</th>
                         <th>CAGR</th>
                         <th>MDD</th>
-                        <th>발동/거래</th>
+                        <th>1차</th>
+                        <th>2차</th>
+                        <th>3차</th>
+                        <th>4차</th>
+                        <th>5차</th>
+                        <th>기타 거래</th>
                     </tr>
                 </thead>
                 <tbody id="bundleResultsBody"></tbody>
@@ -663,9 +675,10 @@ let hasRobustSweepRun = false;
 let hasBundleRun = false;
 let bundleResultLookup = {};
 // v13.8: 현재 환율 로딩 실패 시에만 쓰는 예비 환율입니다.
-const USD_KRW_FALLBACK_RATE = 1350;
+const USD_KRW_FALLBACK_RATE = 1500;
 let usdKrwRate = USD_KRW_FALLBACK_RATE;
 let usdKrwRateLabel = '예비 환율';
+let lastBundleRender = null;
 
 function showMessageBox(msg) {
     document.getElementById('msgBoxText').innerText = msg;
@@ -874,6 +887,8 @@ async function loadCurrentUsdKrwRate() {
             if (Number.isFinite(latest) && latest > 0) {
                 usdKrwRate = latest;
                 usdKrwRateLabel = `현재 환율 ${latest.toLocaleString(undefined, { maximumFractionDigits: 2 })}원/USD`;
+                syncUsdKrwRateInput();
+                rerenderBundleResultsIfReady();
                 return latest;
             }
         } catch (error) {
@@ -882,6 +897,8 @@ async function loadCurrentUsdKrwRate() {
     }
     usdKrwRate = USD_KRW_FALLBACK_RATE;
     usdKrwRateLabel = `예비 환율 ${USD_KRW_FALLBACK_RATE.toLocaleString()}원/USD`;
+    syncUsdKrwRateInput();
+    rerenderBundleResultsIfReady();
     return usdKrwRate;
 }
 
@@ -890,6 +907,28 @@ function ensureCurrentUsdKrwRate() {
         ensureCurrentUsdKrwRate.promise = loadCurrentUsdKrwRate();
     }
     return ensureCurrentUsdKrwRate.promise.catch(() => usdKrwRate);
+}
+
+function syncUsdKrwRateInput() {
+    const input = document.getElementById('usd_krw_rate_input');
+    const status = document.getElementById('usdKrwRateStatus');
+    if (input) input.value = Number(usdKrwRate).toFixed(2);
+    if (status) status.innerText = usdKrwRateLabel;
+}
+
+function handleUsdKrwRateInput() {
+    const input = document.getElementById('usd_krw_rate_input');
+    const value = input ? parseFloat(input.value) : NaN;
+    if (!Number.isFinite(value) || value <= 0) return;
+    usdKrwRate = value;
+    usdKrwRateLabel = `사용자 입력 환율 ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}원/USD`;
+    const status = document.getElementById('usdKrwRateStatus');
+    if (status) status.innerText = usdKrwRateLabel;
+    rerenderBundleResultsIfReady();
+}
+
+function rerenderBundleResultsIfReady() {
+    if (lastBundleRender) renderBundleResults(lastBundleRender.results, lastBundleRender.preset, lastBundleRender.startDate, lastBundleRender.endDate, lastBundleRender.params);
 }
 
 function buildDataSources(ticker, endDate) {
@@ -1840,6 +1879,20 @@ function formatBundleTradeSummary(result) {
     return Object.keys(stageCounts).map(label => `${label} ${stageCounts[label]}회`).join(', ');
 }
 
+function getBundleStageCounts(result) {
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, other: 0 };
+    const events = result && result.tradeEvents ? result.tradeEvents : [];
+    events.forEach(event => {
+        if (event.stage >= 1 && event.stage <= 5) {
+            counts[event.stage]++;
+        } else {
+            counts.other++;
+        }
+    });
+    if (events.length === 0 && result && result.extraBuys > 0) counts.other = result.extraBuys;
+    return counts;
+}
+
 function renderBundleTradeEvents(result) {
     const box = document.getElementById('bundleTradeEventBox');
     if (!box) return;
@@ -1871,7 +1924,7 @@ function formatKrwEok(value) {
 }
 
 function formatUsdWithKrw(value) {
-    return `${formatBundleMoney(value)}<span class="krw-sub">${formatKrwEok(value)} · ${usdKrwRateLabel}</span>`;
+    return `${formatBundleMoney(value)}<span class="krw-sub">${formatKrwEok(value)}</span>`;
 }
 
 function formatBundlePct(value) {
@@ -2180,6 +2233,7 @@ async function runBundleComparison() {
 }
 
 function renderBundleResults(results, preset, startDate, endDate, params) {
+    lastBundleRender = { results, preset, startDate, endDate, params };
     const tbody = document.getElementById('bundleResultsBody');
     tbody.innerHTML = '';
     bundleResultLookup = {};
@@ -2193,13 +2247,14 @@ function renderBundleResults(results, preset, startDate, endDate, params) {
             currentStrategy = res.strategyName;
             const groupRow = document.createElement('tr');
             groupRow.className = 'bundle-group-row';
-            groupRow.innerHTML = `<td colspan="11" style="font-weight:bold; background:var(--bg-color); color:var(--primary-color); text-align:left;">${currentStrategy} 1배/2배/3배 비교 <button type="button" class="help-btn" onclick="event.stopPropagation(); showBundleHelp('result')">?</button></td>`;
+            groupRow.innerHTML = `<td colspan="16" style="font-weight:bold; background:var(--bg-color); color:var(--primary-color); text-align:left;">${currentStrategy} 1배/2배/3배 비교 <button type="button" class="help-btn" onclick="event.stopPropagation(); showBundleHelp('result')">?</button></td>`;
             tbody.appendChild(groupRow);
         }
         const row = document.createElement('tr');
         const yieldColor = res.yieldPer >= 0 ? '#ff4d4d' : '#3498db';
         const cagrColor = res.cagr >= 0 ? '#ff4d4d' : '#3498db';
         const shareText = res.ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(6) : Math.floor(res.shares).toLocaleString();
+        const stageCounts = getBundleStageCounts(res);
         row.innerHTML = `
             <td style="font-weight:bold;">${res.ticker}</td>
             <td>${res.leverage}배</td>
@@ -2211,7 +2266,12 @@ function renderBundleResults(results, preset, startDate, endDate, params) {
             <td style="font-weight:bold; color:${yieldColor};">${formatBundlePct(res.yieldPer)}</td>
             <td style="font-weight:bold; color:${cagrColor};">${formatBundlePct(res.cagr)}</td>
             <td style="font-weight:bold; color:#e67e22;">-${res.mdd.toFixed(2)}%</td>
-            <td>${formatBundleTradeSummary(res)}</td>
+            <td>${stageCounts[1] || ''}</td>
+            <td>${stageCounts[2] || ''}</td>
+            <td>${stageCounts[3] || ''}</td>
+            <td>${stageCounts[4] || ''}</td>
+            <td>${stageCounts[5] || ''}</td>
+            <td>${stageCounts.other || ''}</td>
         `;
         row.onclick = () => openBundleDetailModal(res);
         tbody.appendChild(row);
