@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v12.2</title>
+    <title>퀀트 백테스터 Pro v12.6</title>
+    <!-- v12.6 CODEX: Cloudflare Pages 배포용 functions/proxy.js 구조를 추가했습니다. -->
+    <!-- v12.5 CODEX: 티커 실존 여부/풀네임 표시와 Yahoo CORS 우회 로딩을 개선했습니다. -->
+    <!-- v12.4 CODEX: 임의 티커 입력과 상장일 기준 전체 일봉 조회를 추가했습니다. -->
+    <!-- v12.3 CODEX: 회색 배경 위 푸른/강조색 글자를 본문색으로 변경해 가독성을 개선했습니다. -->
     
     <link rel="shortcut icon" href="icon.svg" type="image/svg+xml">
     
@@ -48,7 +52,8 @@
         /* 탭 스타일 */
         .tabs { display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; }
         .tab-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-sub); font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; border-radius: 8px; text-align: center; }
-        .tab-btn.active { color: var(--primary-color); background-color: var(--btn-bg); }
+        /* v12.3: 회색 배경에서는 강조색 대신 본문색을 사용해 대비를 확보합니다. */
+        .tab-btn.active { color: var(--text-main); background-color: var(--btn-bg); }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
@@ -71,6 +76,10 @@
         .quick-btn-group { display: flex; gap: 5px; margin-top: 5px; }
         .quick-btn { flex: 1; padding: 12px 0; background-color: var(--btn-bg); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 5px; font-size: 12px; cursor: pointer; transition: 0.3s; font-weight: bold; }
         .quick-btn:hover { filter: brightness(0.8); }
+        .ticker-info { margin-top: 6px; padding: 8px 10px; border-radius: 8px; background-color: var(--btn-bg); border: 1px solid var(--border-color); color: var(--text-main); font-size: 12px; font-weight: bold; line-height: 1.35; min-height: 18px; }
+        .ticker-info.loading { color: var(--text-main); opacity: 0.8; }
+        .ticker-info.error { color: var(--text-main); border-color: #b71c1c; }
+        .ticker-info.success { color: var(--text-main); }
 
         /* 커스텀 메시지 박스 */
         .msg-overlay { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; backdrop-filter: blur(2px); }
@@ -109,7 +118,8 @@
         @media (max-width: 600px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
         .stats-box { background-color: var(--btn-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; }
         .stats-label { font-size: 11px; color: var(--text-sub); font-weight: bold; margin-bottom: 3px; }
-        .stats-value { font-size: 15px; font-weight: bold; color: var(--primary-color); }
+        /* v12.3: 통계 박스는 회색 배경이므로 푸른 계열 강조색 대신 검정/본문색을 사용합니다. */
+        .stats-value { font-size: 15px; font-weight: bold; color: var(--text-main); }
 
         .chart-wrapper { position: relative; width: 100%; height: 400px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
         #chartArea { width: 100%; height: 100%; }
@@ -131,7 +141,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v12.2</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v12.6</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -141,13 +151,19 @@
         <div class="input-row">
             <div class="input-group">
                 <label for="ticker">투자 종목</label>
-                <select id="ticker" onchange="handleTickerChange()">
-                    <option value="TQQQ">TQQQ</option>
-                    <option value="SOXL">SOXL</option>
-                    <option value="AAPL">AAPL</option>
-                    <option value="TSLA">TSLA</option>
-                    <option value="BTC">BTC</option>
-                </select>
+                <input type="text" id="ticker" value="TQQQ" list="ticker_presets" onchange="handleTickerChange()" oninput="handleTickerChange()" placeholder="예: NVDA, MSFT, SPY">
+                <datalist id="ticker_presets">
+                    <option value="TQQQ"></option>
+                    <option value="SOXL"></option>
+                    <option value="AAPL"></option>
+                    <option value="TSLA"></option>
+                    <option value="NVDA"></option>
+                    <option value="MSFT"></option>
+                    <option value="SPY"></option>
+                    <option value="QQQ"></option>
+                    <option value="BTC"></option>
+                </datalist>
+                <div id="tickerInfo" class="ticker-info">TQQQ: 티커 정보를 확인 중입니다.</div>
             </div>
             
             <div class="input-group">
@@ -185,6 +201,15 @@
                 <label for="end_date">종료 날짜</label>
                 <input type="date" id="end_date">
             </div>
+        </div>
+        <div class="input-row" style="margin-bottom: 10px;">
+            <label style="font-size: 13px; color: var(--text-main); font-weight: bold;">
+                <input type="checkbox" id="use_listing_start" checked style="width:auto; margin-right:6px; vertical-align:middle;">
+                데이터 첫 거래일부터 자동 분석
+            </label>
+            <p id="dataRangeInfo" style="font-size: 12px; color: var(--text-sub); margin: 0;">
+                임의 티커는 전체 일봉을 먼저 불러온 뒤 시작 날짜를 자동 보정합니다.
+            </p>
         </div>
 
         <div class="input-row" style="margin-bottom: 10px;">
@@ -462,14 +487,192 @@ const csvUrls = {
     'AAPL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQHZ3qHqu3e1_nVhc5pnSh68o2IIq3OmVH7McJgK8yBk7E8HvVhJ69IWvRKhyGbrqVwTeJJpQ9wifK/pub?gid=1162979478&single=true&output=csv'
 };
 
+function getTickerValue() {
+    return String(document.getElementById('ticker').value || '').trim().toUpperCase();
+}
+
+function normalizeTickerForYahoo(ticker) {
+    const raw = String(ticker || '').trim().toUpperCase();
+    if (!raw) return '';
+    if (raw === 'BTC') return 'BTC-USD';
+    if (raw.endsWith('.US')) return raw.replace(/\.US$/, '');
+    return raw.replace(/\./g, '-');
+}
+
+function dateToUnixSeconds(dateStr) {
+    const date = new Date(String(dateStr || '') + 'T23:59:59Z');
+    if (isNaN(date.getTime())) return Math.floor(Date.now() / 1000);
+    return Math.floor(date.getTime() / 1000);
+}
+
+function appendCacheBust(url) {
+    return url + (url.includes('?') ? '&' : '?') + '_=' + new Date().getTime();
+}
+
+function canUseLocalProxy() {
+    return location.protocol === 'http:' && /^(localhost|127\.0\.0\.1)$/i.test(location.hostname);
+}
+
+function buildLocalProxyUrl(targetUrl) {
+    return `/proxy?url=${encodeURIComponent(targetUrl)}`;
+}
+
+function buildJinaProxyUrl(targetUrl) {
+    return `https://r.jina.ai/http://r.jina.ai/http://${targetUrl}`;
+}
+
+function extractJsonText(responseText) {
+    const text = String(responseText || '').trim();
+    if (text.startsWith('{') || text.startsWith('[')) return text;
+
+    // v12.5: Jina Reader는 앞에 설명 문구를 붙이므로 JSON 본문만 잘라냅니다.
+    const firstBrace = text.indexOf('{');
+    const lastBrace = text.lastIndexOf('}');
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+        return text.slice(firstBrace, lastBrace + 1);
+    }
+    throw new Error('JSON 본문을 찾지 못했습니다.');
+}
+
+function buildDataSources(ticker, endDate) {
+    const normalizedTicker = String(ticker || '').trim().toUpperCase();
+    const sources = [];
+    const yahooSymbol = normalizeTickerForYahoo(normalizedTicker);
+    const yahooEnd = dateToUnixSeconds(endDate);
+
+    // v12.4: 임의 티커는 Yahoo Chart 전체 일봉 JSON을 우선 시도합니다. period1=0으로 첫 거래일부터 요청합니다.
+    if (yahooSymbol) {
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?period1=0&period2=${yahooEnd}&interval=1d&events=history&includeAdjustedClose=true`;
+        if (canUseLocalProxy()) {
+            sources.push({
+                name: `Local Proxy Yahoo Chart (${yahooSymbol})`,
+                type: 'yahoo-json',
+                url: buildLocalProxyUrl(yahooUrl),
+                retryNetwork: false
+            });
+        }
+        sources.push({
+            name: `Yahoo Chart (${yahooSymbol})`,
+            type: 'yahoo-json',
+            url: yahooUrl,
+            retryNetwork: false
+        });
+        sources.push({
+            name: `Yahoo Chart Jina (${yahooSymbol})`,
+            type: 'yahoo-json',
+            url: buildJinaProxyUrl(yahooUrl),
+            retryNetwork: false
+        });
+        sources.push({
+            name: `Yahoo Chart Proxy (${yahooSymbol})`,
+            type: 'yahoo-json',
+            url: `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+            retryNetwork: false
+        });
+    }
+
+    // 기존 구글 시트는 보조 소스로 유지해 기존 BTC/수동 데이터 흐름을 살립니다.
+    if (csvUrls[normalizedTicker]) {
+        sources.push({ name: 'Google Sheet', type: 'csv', url: csvUrls[normalizedTicker], retryNetwork: true });
+    }
+
+    return sources;
+}
+
+function buildTickerSearchSources(ticker) {
+    const yahooSymbol = normalizeTickerForYahoo(ticker);
+    const searchUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(yahooSymbol)}&quotesCount=5&newsCount=0`;
+    const sources = [];
+    if (canUseLocalProxy()) {
+        sources.push({ name: 'Local Proxy Yahoo Search', url: buildLocalProxyUrl(searchUrl) });
+    }
+    sources.push(
+        { name: 'Yahoo Search', url: searchUrl },
+        { name: 'Yahoo Search Jina', url: buildJinaProxyUrl(searchUrl) },
+        { name: 'Yahoo Search Proxy', url: `https://api.allorigins.win/raw?url=${encodeURIComponent(searchUrl)}` }
+    );
+    return sources;
+}
+
+let tickerLookupTimer = null;
+
+function setTickerInfo(message, state = '') {
+    const info = document.getElementById('tickerInfo');
+    if (!info) return;
+    info.className = `ticker-info ${state}`.trim();
+    info.innerText = message;
+}
+
+function scheduleTickerLookup() {
+    if (tickerLookupTimer) clearTimeout(tickerLookupTimer);
+    tickerLookupTimer = setTimeout(() => lookupTickerInfo(), 500);
+}
+
+async function lookupTickerInfo() {
+    const ticker = getTickerValue();
+    if (!ticker) {
+        setTickerInfo('티커를 입력하세요.', 'error');
+        return null;
+    }
+
+    setTickerInfo(`${ticker}: 티커 정보를 확인 중입니다.`, 'loading');
+
+    for (const source of buildTickerSearchSources(ticker)) {
+        try {
+            const responseText = await readCsvTextFromUrl(appendCacheBust(source.url));
+            if (/^\s*</.test(responseText)) throw new Error(`${source.name}: HTML 응답`);
+            const payload = JSON.parse(extractJsonText(responseText));
+            const quotes = payload && payload.quotes ? payload.quotes : [];
+            const normalized = normalizeTickerForYahoo(ticker);
+            const exact = quotes.find(q => String(q.symbol || '').toUpperCase() === normalized);
+
+            if (exact && exact.symbol) {
+                const fullName = exact.longname || exact.shortname || exact.symbol;
+                const exchange = exact.exchDisp || exact.exchange || '거래소 정보 없음';
+                const type = exact.typeDisp || exact.quoteType || '유형 정보 없음';
+                setTickerInfo(`${exact.symbol}: ${fullName} / ${exchange} / ${type}`, 'success');
+                return exact;
+            }
+
+            if (quotes.length > 0) {
+                const suggestions = quotes.slice(0, 3).map(q => q.symbol).filter(Boolean).join(', ');
+                setTickerInfo(`${ticker}: 정확히 일치하는 티커가 없습니다.${suggestions ? ` 유사 후보: ${suggestions}` : ''}`, 'error');
+                return null;
+            }
+        } catch (e) {
+            continue;
+        }
+    }
+
+    setTickerInfo(`${ticker}: 확인 가능한 티커 정보를 찾지 못했습니다. 철자나 거래소 접미사를 확인하세요.`, 'error');
+    return null;
+}
+
+function updateLoadedDataRange(ticker, parsedData) {
+    if (!parsedData || parsedData.length === 0) return;
+    const firstDate = parsedData[0].time;
+    const lastDate = parsedData[parsedData.length - 1].time;
+    const useListingStart = document.getElementById('use_listing_start');
+    const dataRangeInfo = document.getElementById('dataRangeInfo');
+
+    if (useListingStart && useListingStart.checked) {
+        document.getElementById('start_date').value = firstDate;
+    }
+
+    if (dataRangeInfo) {
+        dataRangeInfo.innerText = `${ticker} 데이터 범위: ${firstDate} ~ ${lastDate} (${parsedData.length.toLocaleString()}개 일봉)`;
+    }
+}
+
 function handleTickerChange() {
-    const ticker = document.getElementById('ticker').value;
+    const ticker = getTickerValue();
     const btcUnitGroup = document.getElementById('btc_unit_group');
     if (ticker === 'BTC') {
         btcUnitGroup.style.display = 'flex';
     } else {
         btcUnitGroup.style.display = 'none';
     }
+    scheduleTickerLookup();
 }
 
 function switchTab(tabId) {
@@ -502,6 +705,7 @@ window.onload = function() {
     document.getElementById('start_date').value = "2024-05-09";
     document.getElementById('end_date').value = new Date().toISOString().split('T')[0];
     handleTickerChange();
+    lookupTickerInfo();
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         toggleTheme();
     }
@@ -515,10 +719,13 @@ window.onload = function() {
 };
 
 function setQuickDate(years) {
-    const ticker = document.getElementById('ticker').value;
+    const ticker = getTickerValue();
+    const useListingStart = document.getElementById('use_listing_start');
     if (years === 'all') {
-        document.getElementById('start_date').value = (ticker === 'BTC' ? "2016-01-01" : "2011-01-01");
+        if (useListingStart) useListingStart.checked = true;
+        document.getElementById('dataRangeInfo').innerText = "다음 실행 시 데이터 첫 거래일부터 자동 분석합니다.";
     } else {
+        if (useListingStart) useListingStart.checked = false;
         let end = new Date();
         end.setFullYear(end.getFullYear() - years);
         document.getElementById('start_date').value = end.toISOString().split('T')[0];
@@ -593,10 +800,10 @@ function parseCsvText(csvText) {
 
 function getDataLoadFailureMessage() {
     const detail = fetchAndParseData.lastError ? `\n\n상세 오류: ${fetchAndParseData.lastError}` : "";
-    if (fetchAndParseData.lastStatus === 'loading') return "구글 시트가 아직 로딩 중입니다. 잠시 후 다시 실행해 주세요.";
-    if (fetchAndParseData.lastStatus === 'network') return "구글 시트 연결에 실패했습니다. 인터넷 연결 또는 시트 공개 상태를 확인해 주세요." + detail;
-    if (fetchAndParseData.lastStatus === 'parse') return "구글 시트 데이터 형식을 읽지 못했습니다. CSV 게시 형식과 날짜/종가 열을 확인해 주세요." + detail;
-    return "해당 기간의 구글 시트 데이터를 찾을 수 없습니다.";
+    if (fetchAndParseData.lastStatus === 'loading') return "데이터 소스가 아직 로딩 중입니다. 잠시 후 다시 실행해 주세요.";
+    if (fetchAndParseData.lastStatus === 'network') return "일봉 데이터 연결에 실패했습니다. 티커명, 인터넷 연결 또는 데이터 소스 상태를 확인해 주세요." + detail;
+    if (fetchAndParseData.lastStatus === 'parse') return "일봉 데이터 형식을 읽지 못했습니다. 날짜/시가/고가/저가/종가 열을 확인해 주세요." + detail;
+    return "해당 티커/기간의 일봉 데이터를 찾을 수 없습니다.";
 }
 
 async function readCsvTextFromUrl(url) {
@@ -618,7 +825,156 @@ async function readCsvTextFromUrl(url) {
     });
 }
 
+function parseMarketRows(data, endDate) {
+    if (!data || data.length < 2) return [];
+
+    let parsedData = [];
+    let end = new Date(endDate + 'T23:59:59');
+    let idxDate = 1, idxClose = 6, idxOpen = 2, idxHigh = 3, idxLow = 4;
+
+    for (let i = 0; i < Math.min(20, data.length); i++) {
+        let row = data[i] || [];
+        if (row.some(cell => String(cell || '').toLowerCase().includes('날짜') || String(cell || '').toLowerCase().includes('date'))) {
+            row.forEach((cell, idx) => {
+                let c = String(cell || '').trim().toLowerCase();
+                if (c.includes('날짜') || c.includes('date')) idxDate = idx;
+                else if (c.includes('종가') || c.includes('close') || c.includes('현재가')) idxClose = idx;
+                else if (c.includes('시가') || c.includes('open')) idxOpen = idx;
+                else if (c.includes('고가') || c.includes('high')) idxHigh = idx;
+                else if (c.includes('저가') || c.includes('low')) idxLow = idx;
+            });
+            break;
+        }
+    }
+
+    for (let i = 0; i < data.length; i++) {
+        let row = data[i];
+        let rawDate = (row[idxDate] || '').trim();
+        if (!rawDate || rawDate.toLowerCase().includes('날짜') || rawDate.toLowerCase().includes('date') || rawDate.includes('#') || rawDate.toLowerCase().includes('loading')) continue;
+
+        let cleanDateStr = parseRobustDate(rawDate);
+        if (!cleanDateStr) continue;
+        let rowDate = new Date(cleanDateStr + 'T00:00:00');
+        if (isNaN(rowDate.getTime())) continue;
+
+        if (rowDate <= end) {
+            let close = parseFloat(String(row[idxClose] || 0).replace(/,/g, ''));
+            if (!isNaN(close) && close > 0) {
+                parsedData.push({
+                    time: cleanDateStr,
+                    open: parseFloat(String(row[idxOpen] || close).replace(/,/g, '')),
+                    high: parseFloat(String(row[idxHigh] || close).replace(/,/g, '')),
+                    low: parseFloat(String(row[idxLow] || close).replace(/,/g, '')),
+                    close: close
+                });
+            }
+        }
+    }
+
+    parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
+    return parsedData;
+}
+
+function parseYahooChartText(jsonText, endDate) {
+    const payload = JSON.parse(extractJsonText(jsonText));
+    const result = payload && payload.chart && payload.chart.result && payload.chart.result[0];
+    if (!result || !result.timestamp || !result.indicators || !result.indicators.quote || !result.indicators.quote[0]) {
+        const err = payload && payload.chart && payload.chart.error;
+        if (err && err.description) throw new Error(err.description);
+        return [];
+    }
+
+    const quote = result.indicators.quote[0];
+    const timestamps = result.timestamp || [];
+    const end = new Date(endDate + 'T23:59:59').getTime();
+    const parsedData = [];
+
+    for (let i = 0; i < timestamps.length; i++) {
+        const close = Number(quote.close && quote.close[i]);
+        if (!Number.isFinite(close) || close <= 0) continue;
+
+        const dateObj = new Date(timestamps[i] * 1000);
+        const time = dateObj.toISOString().split('T')[0];
+        if (new Date(time + 'T00:00:00').getTime() > end) continue;
+
+        parsedData.push({
+            time,
+            open: Number(quote.open && quote.open[i]) || close,
+            high: Number(quote.high && quote.high[i]) || close,
+            low: Number(quote.low && quote.low[i]) || close,
+            close
+        });
+    }
+
+    parsedData.sort((a, b) => new Date(a.time) - new Date(b.time));
+    return parsedData;
+}
+
 async function fetchAndParseData(ticker, endDate, options = {}) {
+    const maxRetries = options.maxRetries || DATA_RETRY_LIMIT;
+    const retryDelayMs = options.retryDelayMs || DATA_RETRY_DELAY_MS;
+    const sources = buildDataSources(ticker, endDate);
+    fetchAndParseData.lastStatus = 'idle'; fetchAndParseData.lastError = ''; fetchAndParseData.lastLoadMethod = ''; fetchAndParseData.lastSource = '';
+
+    if (sources.length === 0) {
+        fetchAndParseData.lastStatus = 'empty';
+        fetchAndParseData.lastError = '티커가 비어 있거나 지원 가능한 데이터 소스를 만들지 못했습니다.';
+        return [];
+    }
+
+    for (const source of sources) {
+        fetchAndParseData.lastSource = source.name;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const responseText = await readCsvTextFromUrl(appendCacheBust(source.url));
+
+                if (isSheetLoadingResponse(responseText)) {
+                    fetchAndParseData.lastStatus = 'loading';
+                    if (attempt < maxRetries) {
+                        if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs, source: source.name });
+                        await wait(retryDelayMs);
+                        continue;
+                    }
+                    break;
+                }
+
+                if (/^\s*</.test(responseText)) throw new Error(`${source.name}: 데이터 대신 HTML 응답을 받았습니다. (${fetchAndParseData.lastLoadMethod})`);
+                if (/^\s*(no data|brak danych)/i.test(responseText)) {
+                    fetchAndParseData.lastStatus = 'empty';
+                    fetchAndParseData.lastError = `${source.name}: 해당 티커의 데이터가 없습니다.`;
+                    break;
+                }
+
+                const parsedData = source.type === 'yahoo-json'
+                    ? parseYahooChartText(responseText, endDate)
+                    : parseMarketRows(await parseCsvText(responseText), endDate);
+                if (parsedData.length > 0) {
+                    fetchAndParseData.lastStatus = 'success';
+                    updateLoadedDataRange(ticker, parsedData);
+                    return parsedData;
+                }
+
+                fetchAndParseData.lastStatus = 'empty';
+                fetchAndParseData.lastError = `${source.name}: 날짜/종가 데이터를 찾지 못했습니다.`;
+                break;
+            } catch (e) {
+                fetchAndParseData.lastError = e && e.message ? e.message : String(e);
+                fetchAndParseData.lastStatus = e && /parse|papa/i.test(String(e.message || e)) ? 'parse' : 'network';
+                if (attempt < maxRetries && source.retryNetwork !== false) {
+                    if (options.onRetry) options.onRetry({ attempt, maxRetries, retryDelayMs, source: source.name });
+                    await wait(retryDelayMs);
+                    continue;
+                }
+                break;
+            }
+        }
+    }
+
+    return [];
+}
+
+async function fetchAndParseDataLegacy(ticker, endDate, options = {}) {
     const maxRetries = options.maxRetries || DATA_RETRY_LIMIT;
     const retryDelayMs = options.retryDelayMs || DATA_RETRY_DELAY_MS;
     fetchAndParseData.lastStatus = 'idle'; fetchAndParseData.lastError = ''; fetchAndParseData.lastLoadMethod = '';
@@ -888,8 +1244,9 @@ function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
     document.getElementById('resSharesValue').innerText = "$" + calc.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resTotalAssets').innerText = "$" + calc.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     
-    const yieldEl = document.getElementById('resYield'); yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%"; yieldEl.style.color = calc.yieldPer >= 0 ? "#ff4d4d" : "#3498db";
-    const cagrEl = document.getElementById('resCagr'); cagrEl.innerText = (calc.cagr > 0 ? "+" : "") + calc.cagr.toFixed(2) + "%"; cagrEl.style.color = calc.cagr >= 0 ? "#ff4d4d" : "#3498db";
+    // v12.3: 회색 통계 박스 안에서는 수익/손실 색상보다 본문색 대비를 우선합니다.
+    const yieldEl = document.getElementById('resYield'); yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%"; yieldEl.style.color = 'var(--text-main)';
+    const cagrEl = document.getElementById('resCagr'); cagrEl.innerText = (calc.cagr > 0 ? "+" : "") + calc.cagr.toFixed(2) + "%"; cagrEl.style.color = 'var(--text-main)';
 
     setTimeout(() => {
         const chartContainer = document.getElementById('chartArea'); chartContainer.innerHTML = '';
@@ -927,13 +1284,21 @@ async function runSingleBacktest() {
     btn.innerText = "데이터 분석 중...";
     document.body.style.cursor = 'wait';
 
-    const ticker = document.getElementById('ticker').value, N = parseInt(document.getElementById('n_days').value), SIGMA = parseFloat(document.getElementById('sigma').value);
-    const startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
+    const ticker = getTickerValue(), N = parseInt(document.getElementById('n_days').value), SIGMA = parseFloat(document.getElementById('sigma').value);
+    let startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
     const tradeConfig = getTradeConfig();
+    const tickerInfo = await lookupTickerInfo();
+    if (!tickerInfo) {
+        showMessageBox("확인 가능한 티커가 아닙니다. 티커명을 다시 확인해 주세요.");
+        btn.innerText = "백테스트 실행 및 차트 그리기";
+        document.body.style.cursor = 'default';
+        return;
+    }
 
-    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { btn.innerText = `구글 시트 로딩 대기 중... (${attempt}/${maxRetries})`; } });
+    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries, source }) => { btn.innerText = `${source || '일봉 데이터'} 로딩 대기 중... (${attempt}/${maxRetries})`; } });
     if (rawData.length === 0) { 
         showMessageBox(getDataLoadFailureMessage()); 
         btn.innerText = "백테스트 실행 및 차트 그리기"; 
@@ -941,6 +1306,8 @@ async function runSingleBacktest() {
         return; 
     }
 
+    // v12.4: 데이터 첫 거래일 자동 보정 후 실제 시작일을 다시 읽습니다.
+    startDate = document.getElementById('start_date').value;
     const calc = executeBacktestCore(rawData, N, SIGMA, btcUnitValue, ticker, initCash, startDate, tradeConfig, monthlyInvest);
     openDetailModal(calc.slicedCandles, calc, N, SIGMA, ticker);
     
@@ -952,10 +1319,15 @@ async function runSingleBacktest() {
 async function runParameterSweep() {
     const btn = document.getElementById('sweepBtn');
     const progContainer = document.getElementById('progressContainer'), progBar = document.getElementById('progressBar'), progText = document.getElementById('progressText');
-    const ticker = document.getElementById('ticker').value, startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
+    const ticker = getTickerValue();
+    let startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
     const tradeConfig = getTradeConfig();
+    const tickerInfo = await lookupTickerInfo();
+    if (!tickerInfo) { showMessageBox("확인 가능한 티커가 아닙니다. 티커명을 다시 확인해 주세요."); return; }
+
     const nStart = parseInt(document.getElementById('n_start').value), nEnd = parseInt(document.getElementById('n_end').value), nStep = parseInt(document.getElementById('n_step').value);
     const sStart = parseFloat(document.getElementById('s_start').value), sEnd = parseFloat(document.getElementById('s_end').value), sStep = parseFloat(document.getElementById('s_step').value);
 
@@ -971,9 +1343,11 @@ async function runParameterSweep() {
     if (total === 0) { showMessageBox("스윕 가능한 경우의 수가 존재하지 않습니다."); return; }
 
     btn.disabled = true; btn.innerText = "데이터 로딩 중...";
-    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { progContainer.style.display = 'block'; progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%"; progText.innerText = `로딩 중... (${attempt}/${maxRetries})`; btn.innerText = "로딩 대기 중..."; } });
+    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries, source }) => { progContainer.style.display = 'block'; progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%"; progText.innerText = `${source || '일봉 데이터'} 로딩 중... (${attempt}/${maxRetries})`; btn.innerText = "로딩 대기 중..."; } });
     if (rawData.length === 0) { showMessageBox(getDataLoadFailureMessage()); btn.disabled = false; btn.innerText = "최적값 스윕 시작"; progContainer.style.display = 'none'; return; }
 
+    // v12.4: 자동 상장일 보정이 켜져 있으면 스윕도 실제 첫 거래일부터 계산합니다.
+    startDate = document.getElementById('start_date').value;
     progContainer.style.display = 'block';
     let results = [];
     let currentIndex = 0;
@@ -1041,17 +1415,19 @@ function renderSweepTable(results, ticker) {
 async function runRobustSweep() {
     const btn = document.getElementById('robustSweepBtn');
     const progContainer = document.getElementById('robustProgressContainer'), progBar = document.getElementById('robustProgressBar'), progText = document.getElementById('robustProgressText');
-    const ticker = document.getElementById('ticker').value, startDate = document.getElementById('start_date').value, endDate = document.getElementById('end_date').value;
+    const ticker = getTickerValue();
+    let startDate = document.getElementById('start_date').value;
+    const endDate = document.getElementById('end_date').value;
     const btcUnitValue = parseFloat(document.getElementById('btc_unit').value) || 10, initCash = parseFloat(document.getElementById('init_cash').value) || 35000, monthlyInvest = parseFloat(document.getElementById('monthly_invest').value) || 0;
     
     const tradeConfig = getTradeConfig();
+    const tickerInfo = await lookupTickerInfo();
+    if (!tickerInfo) { showMessageBox("확인 가능한 티커가 아닙니다. 티커명을 다시 확인해 주세요."); return; }
+
     const nStart = parseInt(document.getElementById('rn_start').value), nEnd = parseInt(document.getElementById('rn_end').value), nStep = parseInt(document.getElementById('rn_step').value);
     const sStart = parseFloat(document.getElementById('rs_start').value), sEnd = parseFloat(document.getElementById('rs_end').value), sStep = parseFloat(document.getElementById('rs_step').value);
 
     if (nStart > nEnd || nStep <= 0 || sStart > sEnd || sStep <= 0) { showMessageBox("다중 스윕 범위를 올바르게 설정해주세요."); return; }
-
-    const periods = partitionPeriods(startDate, endDate);
-    if (periods.length === 0) { showMessageBox("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요."); return; }
 
     let combinations = [];
     for (let n = nStart; n <= nEnd; n += nStep) {
@@ -1063,8 +1439,13 @@ async function runRobustSweep() {
     if (total === 0) { showMessageBox("다중 스윕 가능한 경우의 수가 존재하지 않습니다."); return; }
 
     btn.disabled = true; btn.innerText = "전체 데이터 파싱 중...";
-    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries }) => { progContainer.style.display = 'block'; progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%"; progText.innerText = `로딩 중... (${attempt}/${maxRetries})`; btn.innerText = "로딩 대기 중..."; } });
+    const rawData = await fetchAndParseData(ticker, endDate, { onRetry: ({ attempt, maxRetries, source }) => { progContainer.style.display = 'block'; progBar.style.width = Math.round((attempt / maxRetries) * 100) + "%"; progText.innerText = `${source || '일봉 데이터'} 로딩 중... (${attempt}/${maxRetries})`; btn.innerText = "로딩 대기 중..."; } });
     if (rawData.length === 0) { showMessageBox(getDataLoadFailureMessage()); btn.disabled = false; btn.innerText = "다중 기간 분할 스윕 시작"; progContainer.style.display = 'none'; return; }
+
+    // v12.4: 전체 일봉 로딩 후 보정된 시작일로 분할 기간을 생성합니다.
+    startDate = document.getElementById('start_date').value;
+    const periods = partitionPeriods(startDate, endDate);
+    if (periods.length === 0) { showMessageBox("다중 분할을 생성하기에 선택한 기간이 너무 짧습니다. 최소 1년 이상 기간을 잡아주세요."); btn.disabled = false; btn.innerText = "다중 기간 분할 스윕 시작"; progContainer.style.display = 'none'; return; }
 
     progContainer.style.display = 'block';
     let robustResults = [];
