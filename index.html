@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v12.6</title>
+    <title>퀀트 백테스터 Pro v12.8</title>
+    <!-- v12.8 CODEX: QQQ/TQQQ 전용 합성 로직을 레버리지 ETF 공통 합성 로직으로 일반화하고 SOXX-USD-SOXL 관계를 추가했습니다. -->
+    <!-- v12.7 CODEX: TQQQ 상장 전 구간을 QQQ 3배 합성 데이터로 역산 연결하는 옵션을 추가했습니다. -->
     <!-- v12.6 CODEX: Cloudflare Pages 배포용 functions/proxy.js 구조를 추가했습니다. -->
     <!-- v12.5 CODEX: 티커 실존 여부/풀네임 표시와 Yahoo CORS 우회 로딩을 개선했습니다. -->
     <!-- v12.4 CODEX: 임의 티커 입력과 상장일 기준 전체 일봉 조회를 추가했습니다. -->
@@ -141,7 +143,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v12.6</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v12.8</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -154,13 +156,20 @@
                 <input type="text" id="ticker" value="TQQQ" list="ticker_presets" onchange="handleTickerChange()" oninput="handleTickerChange()" placeholder="예: NVDA, MSFT, SPY">
                 <datalist id="ticker_presets">
                     <option value="TQQQ"></option>
+                    <option value="QLD"></option>
+                    <option value="QQQ"></option>
                     <option value="SOXL"></option>
+                    <option value="USD"></option>
+                    <option value="SOXX"></option>
+                    <option value="UPRO"></option>
+                    <option value="SPXL"></option>
+                    <option value="SSO"></option>
+                    <option value="SPUU"></option>
                     <option value="AAPL"></option>
                     <option value="TSLA"></option>
                     <option value="NVDA"></option>
                     <option value="MSFT"></option>
                     <option value="SPY"></option>
-                    <option value="QQQ"></option>
                     <option value="BTC"></option>
                 </datalist>
                 <div id="tickerInfo" class="ticker-info">TQQQ: 티커 정보를 확인 중입니다.</div>
@@ -207,8 +216,12 @@
                 <input type="checkbox" id="use_listing_start" checked style="width:auto; margin-right:6px; vertical-align:middle;">
                 데이터 첫 거래일부터 자동 분석
             </label>
+            <label id="synthetic_leverage_option" style="font-size: 13px; color: var(--text-main); font-weight: bold; display:none;">
+                <input type="checkbox" id="use_synthetic_leverage" checked style="width:auto; margin-right:6px; vertical-align:middle;">
+                상장 전 1배 ETF 기반 레버리지 합성 데이터 사용
+            </label>
             <p id="dataRangeInfo" style="font-size: 12px; color: var(--text-sub); margin: 0;">
-                임의 티커는 전체 일봉을 먼저 불러온 뒤 시작 날짜를 자동 보정합니다.
+                임의 티커는 전체 일봉을 먼저 불러온 뒤 시작 날짜를 자동 보정합니다. 합성 구간은 실제 가격이 아닌 1배 ETF 기반 추정값입니다.
             </p>
         </div>
 
@@ -487,6 +500,18 @@ const csvUrls = {
     'AAPL': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQQHZ3qHqu3e1_nVhc5pnSh68o2IIq3OmVH7McJgK8yBk7E8HvVhJ69IWvRKhyGbrqVwTeJJpQ9wifK/pub?gid=1162979478&single=true&output=csv'
 };
 
+const leveragedSyntheticMap = {
+    // v12.8: 1배 ETF 일별수익률을 레버리지 배수로 합성한 뒤 실제 ETF 첫 거래일 가격에 맞춰 연결합니다.
+    'TQQQ': { baseTicker: 'QQQ', leverage: 3, expenseRatio: 0.0098, label: 'QQQ 3배 합성' },
+    'QLD': { baseTicker: 'QQQ', leverage: 2, expenseRatio: 0.0095, label: 'QQQ 2배 합성' },
+    'SOXL': { baseTicker: 'SOXX', leverage: 3, expenseRatio: 0.0075, label: 'SOXX 3배 합성' },
+    'USD': { baseTicker: 'SOXX', leverage: 2, expenseRatio: 0.0095, label: 'SOXX 2배 합성' },
+    'UPRO': { baseTicker: 'SPY', leverage: 3, expenseRatio: 0.0091, label: 'SPY 3배 합성' },
+    'SPXL': { baseTicker: 'SPY', leverage: 3, expenseRatio: 0.0084, label: 'SPY 3배 합성' },
+    'SSO': { baseTicker: 'SPY', leverage: 2, expenseRatio: 0.0087, label: 'SPY 2배 합성' },
+    'SPUU': { baseTicker: 'SPY', leverage: 2, expenseRatio: 0.0063, label: 'SPY 2배 합성' }
+};
+
 function getTickerValue() {
     return String(document.getElementById('ticker').value || '').trim().toUpperCase();
 }
@@ -654,23 +679,31 @@ function updateLoadedDataRange(ticker, parsedData) {
     const lastDate = parsedData[parsedData.length - 1].time;
     const useListingStart = document.getElementById('use_listing_start');
     const dataRangeInfo = document.getElementById('dataRangeInfo');
+    const syntheticRows = parsedData.filter(item => item.syntheticSource);
+    const syntheticCount = syntheticRows.length;
 
     if (useListingStart && useListingStart.checked) {
         document.getElementById('start_date').value = firstDate;
     }
 
     if (dataRangeInfo) {
-        dataRangeInfo.innerText = `${ticker} 데이터 범위: ${firstDate} ~ ${lastDate} (${parsedData.length.toLocaleString()}개 일봉)`;
+        const syntheticLabel = syntheticCount > 0 ? (syntheticRows[0].syntheticLabel || syntheticRows[0].syntheticSource || '합성') : '';
+        const syntheticText = syntheticCount > 0 ? ` / ${syntheticLabel} ${syntheticCount.toLocaleString()}개 포함` : '';
+        dataRangeInfo.innerText = `${ticker} 데이터 범위: ${firstDate} ~ ${lastDate} (${parsedData.length.toLocaleString()}개 일봉${syntheticText})`;
     }
 }
 
 function handleTickerChange() {
     const ticker = getTickerValue();
     const btcUnitGroup = document.getElementById('btc_unit_group');
+    const syntheticLeverageOption = document.getElementById('synthetic_leverage_option');
     if (ticker === 'BTC') {
         btcUnitGroup.style.display = 'flex';
     } else {
         btcUnitGroup.style.display = 'none';
+    }
+    if (syntheticLeverageOption) {
+        syntheticLeverageOption.style.display = leveragedSyntheticMap[ticker] ? 'inline-flex' : 'none';
     }
     scheduleTickerLookup();
 }
@@ -910,11 +943,72 @@ function parseYahooChartText(jsonText, endDate) {
     return parsedData;
 }
 
-async function fetchAndParseData(ticker, endDate, options = {}) {
-    const maxRetries = options.maxRetries || DATA_RETRY_LIMIT;
-    const retryDelayMs = options.retryDelayMs || DATA_RETRY_DELAY_MS;
+function getLeveragedSyntheticConfig(ticker) {
+    return leveragedSyntheticMap[String(ticker || '').trim().toUpperCase()] || null;
+}
+
+function shouldUseSyntheticLeverage(ticker) {
+    const option = document.getElementById('use_synthetic_leverage');
+    return !!getLeveragedSyntheticConfig(ticker) && (!option || option.checked);
+}
+
+function buildSyntheticLeveragedData(actualData, baseData, config) {
+    if (!actualData || actualData.length === 0 || !baseData || baseData.length < 2 || !config) return actualData || [];
+
+    const leverage = config.leverage;
+    const dailyExpense = (config.expenseRatio || 0) / 252;
+    const actualStart = actualData[0];
+    const actualStartIndex = baseData.findIndex(item => item.time === actualStart.time);
+
+    if (actualStartIndex <= 0) return actualData;
+
+    const syntheticIndex = new Array(baseData.length).fill(null);
+    syntheticIndex[0] = 1;
+
+    for (let i = 1; i < baseData.length; i++) {
+        const prevClose = baseData[i - 1].close;
+        const curClose = baseData[i].close;
+        const dailyReturn = prevClose > 0 ? (curClose / prevClose) - 1 : 0;
+        const leveragedReturn = leverage * dailyReturn - dailyExpense;
+        syntheticIndex[i] = Math.max(0.000001, syntheticIndex[i - 1] * (1 + leveragedReturn));
+    }
+
+    const scale = actualStart.close / syntheticIndex[actualStartIndex];
+    const syntheticRows = [];
+
+    // v12.8: 실제 레버리지 ETF 첫 거래일 종가에 연결되도록 1배 ETF 기반 합성 가격을 역산합니다.
+    for (let i = 1; i < actualStartIndex; i++) {
+        const basePrevClose = baseData[i - 1].close;
+        const prevSyntheticClose = syntheticIndex[i - 1] * scale;
+        const close = syntheticIndex[i] * scale;
+
+        const calcLeveragedPoint = (price) => {
+            if (!Number.isFinite(price) || basePrevClose <= 0) return close;
+            return Math.max(0.000001, prevSyntheticClose * (1 + leverage * ((price / basePrevClose) - 1) - dailyExpense));
+        };
+
+        const open = calcLeveragedPoint(baseData[i].open);
+        const highCandidate = calcLeveragedPoint(baseData[i].high);
+        const lowCandidate = calcLeveragedPoint(baseData[i].low);
+        const high = Math.max(open, close, highCandidate, lowCandidate);
+        const low = Math.min(open, close, highCandidate, lowCandidate);
+
+        syntheticRows.push({
+            time: baseData[i].time,
+            open,
+            high,
+            low,
+            close,
+            syntheticSource: `${config.baseTicker}_${leverage}X`,
+            syntheticLabel: config.label || `${config.baseTicker} ${leverage}배 합성`
+        });
+    }
+
+    return syntheticRows.concat(actualData);
+}
+
+async function fetchParsedDataFromSources(ticker, endDate, options, maxRetries, retryDelayMs) {
     const sources = buildDataSources(ticker, endDate);
-    fetchAndParseData.lastStatus = 'idle'; fetchAndParseData.lastError = ''; fetchAndParseData.lastLoadMethod = ''; fetchAndParseData.lastSource = '';
 
     if (sources.length === 0) {
         fetchAndParseData.lastStatus = 'empty';
@@ -951,7 +1045,6 @@ async function fetchAndParseData(ticker, endDate, options = {}) {
                     : parseMarketRows(await parseCsvText(responseText), endDate);
                 if (parsedData.length > 0) {
                     fetchAndParseData.lastStatus = 'success';
-                    updateLoadedDataRange(ticker, parsedData);
                     return parsedData;
                 }
 
@@ -972,6 +1065,33 @@ async function fetchAndParseData(ticker, endDate, options = {}) {
     }
 
     return [];
+}
+
+async function fetchAndParseData(ticker, endDate, options = {}) {
+    const maxRetries = options.maxRetries || DATA_RETRY_LIMIT;
+    const retryDelayMs = options.retryDelayMs || DATA_RETRY_DELAY_MS;
+    fetchAndParseData.lastStatus = 'idle'; fetchAndParseData.lastError = ''; fetchAndParseData.lastLoadMethod = ''; fetchAndParseData.lastSource = '';
+
+    if (shouldUseSyntheticLeverage(ticker)) {
+        const config = getLeveragedSyntheticConfig(ticker);
+        const actualData = await fetchParsedDataFromSources(ticker, endDate, options, maxRetries, retryDelayMs);
+        const baseData = await fetchParsedDataFromSources(config.baseTicker, endDate, options, maxRetries, retryDelayMs);
+        const mergedData = buildSyntheticLeveragedData(actualData, baseData, config);
+
+        if (mergedData.length > 0) {
+            fetchAndParseData.lastStatus = 'success';
+            updateLoadedDataRange(ticker, mergedData);
+            return mergedData;
+        }
+
+        return [];
+    }
+
+    const parsedData = await fetchParsedDataFromSources(ticker, endDate, options, maxRetries, retryDelayMs);
+    if (parsedData.length > 0) {
+        updateLoadedDataRange(ticker, parsedData);
+    }
+    return parsedData;
 }
 
 async function fetchAndParseDataLegacy(ticker, endDate, options = {}) {
