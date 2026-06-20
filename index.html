@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v13.3</title>
+    <title>퀀트 백테스터 Pro v13.7</title>
+    <!-- v13.7 CODEX: 최종자산과 투입금 달러 표기 아래에 원화 억원 환산 보조 표기를 추가했습니다. -->
+    <!-- v13.6 CODEX: 묶음 비교 리밸런싱 결과에서 발동/거래 단계와 거래 내역을 구분해 표시하도록 추가했습니다. -->
+    <!-- v13.5 CODEX: 묶음 비교 적립식 전략에도 시작일 초기 투자금을 입력받아 계산하도록 추가했습니다. -->
+    <!-- v13.4 CODEX: 묶음 비교 요약 막대 안에 투입자산을 다른 색으로 겹쳐 표시하도록 개선했습니다. -->
     <!-- v13.3 CODEX: 묶음 비교 결과 상단에 최종자산/투입금/수익률 막대그래프 요약을 추가했습니다. -->
     <!-- v13.2 CODEX: 묶음 비교 결과표 전체 표시, 결과 행 차트 팝업, 입력 도움말 버튼을 추가했습니다. -->
     <!-- v13.1 CODEX: 기존 백테스터와 레버리지 묶음 비교를 모드 선택으로 분리하고, 상장일/전체기간/묶음 비교 조건을 개선했습니다. -->
@@ -117,11 +121,14 @@
         .bundle-summary { display: flex; flex-direction: column; gap: 14px; margin: 12px 0 18px 0; }
         .bundle-summary-section { border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--card-bg); }
         .bundle-summary-title { font-size: 13px; font-weight: bold; color: var(--primary-color); margin-bottom: 8px; }
-        .bundle-bar-row { display: grid; grid-template-columns: 92px minmax(120px, 1fr) 190px; gap: 8px; align-items: center; margin: 7px 0; font-size: 12px; }
+        .bundle-bar-row { display: grid; grid-template-columns: 92px minmax(120px, 1fr) 84px; gap: 8px; align-items: center; margin: 7px 0; font-size: 12px; }
         .bundle-bar-label { font-weight: bold; color: var(--text-main); }
-        .bundle-bar-track { height: 24px; background: var(--btn-bg); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color); }
-        .bundle-bar-fill { height: 100%; min-width: 4px; display: flex; align-items: center; padding-left: 6px; color: white; font-weight: bold; white-space: nowrap; box-sizing: border-box; }
-        .bundle-bar-meta { color: var(--text-main); line-height: 1.35; }
+        .bundle-bar-track { height: 28px; background: var(--btn-bg); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color); position: relative; }
+        .bundle-bar-final { position: absolute; left: 0; top: 0; height: 100%; min-width: 4px; display: flex; align-items: center; padding-left: 6px; color: white; font-weight: bold; white-space: nowrap; box-sizing: border-box; z-index: 1; }
+        .bundle-bar-invested { position: absolute; left: 0; bottom: 0; height: 38%; min-width: 3px; background: rgba(255, 255, 255, 0.72); border-right: 2px solid rgba(0, 0, 0, 0.35); z-index: 2; box-sizing: border-box; }
+        .bundle-bar-text { position: absolute; left: 7px; right: 6px; top: 50%; transform: translateY(-50%); color: white; font-weight: bold; z-index: 3; text-shadow: 0 1px 2px rgba(0,0,0,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .bundle-bar-meta { color: var(--text-main); line-height: 1.25; font-weight: bold; }
+        .krw-sub { display: block; margin-top: 2px; font-size: 0.67em; color: var(--text-sub); font-weight: normal; line-height: 1.15; }
         .help-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--btn-bg); color: var(--text-main); font-size: 12px; font-weight: bold; cursor: pointer; vertical-align: middle; }
         .help-btn:hover { filter: brightness(0.9); }
 
@@ -150,7 +157,7 @@
         [data-theme="dark"] .chart-legend { background: rgba(30, 30, 30, 0.85); color: #e0e0e0; border-color: #444444; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
         .classic-mode-section, .bundle-mode-section { display: none; }
 
-        @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } }
+        @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } .bundle-bar-row { grid-template-columns: 72px minmax(130px, 1fr) 54px; } .bundle-bar-text { font-size: 11px; } }
     </style>
 </head>
 <body>
@@ -164,7 +171,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.3</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.7</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -466,6 +473,10 @@
                 <label for="bundle_monthly_x">적립식 월 투자금 X ($) <button type="button" class="help-btn" onclick="showBundleHelp('monthly')">?</button></label>
                 <input type="number" id="bundle_monthly_x" value="500" min="0" step="10">
             </div>
+            <div class="input-group">
+                <label for="bundle_monthly_initial">적립식 초기 투자금 ($) <button type="button" class="help-btn" onclick="showBundleHelp('monthlyInitial')">?</button></label>
+                <input type="number" id="bundle_monthly_initial" value="0" min="0" step="100">
+            </div>
         </div>
 
         <div class="input-row">
@@ -599,6 +610,7 @@
         <span class="close-btn" onclick="closeModal()">&times;</span>
         <h2 id="detailModalTitle" style="margin-top:0; font-size: 18px;">📊 단일 시뮬레이션 상세 분석 결과 (Warmup 보정됨)</h2>
         <p id="tradeCountText" style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;"></p>
+        <div id="bundleTradeEventBox" style="display:none; margin: 8px 0 12px; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); font-size: 12px; color: var(--text-main);"></div>
 
         <div class="stats-grid">
             <div class="stats-box">
@@ -648,6 +660,8 @@ let hasSweepRun = false;
 let hasRobustSweepRun = false;
 let hasBundleRun = false;
 let bundleResultLookup = {};
+// v13.7: 원화 보조 표기는 고정 기준 환율로 계산합니다. 필요하면 다음 버전에서 입력값으로 분리할 수 있습니다.
+const USD_KRW_RATE = 1350;
 
 function showMessageBox(msg) {
     document.getElementById('msgBoxText').innerText = msg;
@@ -664,6 +678,7 @@ function showBundleHelp(topic) {
         years: '분석할 기간입니다. 종료일에서 Y년을 거슬러 올라가며, 세 종목 모두 데이터가 있는 공통 시작일부터 계산합니다.',
         initial: '거치식 전략에서 시작일에 한 번에 투입할 금액입니다. 이 값을 바꾸면 분석 기간 개월 수로 나눈 값이 적립식 월 투자금에 자동 입력됩니다.',
         monthly: '적립식 전략에서 매달 첫 거래일에 매수할 금액입니다. 거치식 초기자본과 분석 기간을 기준으로 자동 계산되지만 직접 수정할 수도 있습니다.',
+        monthlyInitial: '적립식 전략에서도 시작일에 먼저 투자할 초기 금액입니다. 이 금액을 첫 거래일에 한 번 매수한 뒤, 이후 매달 월 투자금을 추가 매수합니다.',
         regularA: '리밸런싱 전략에서 매달 즉시 매수하는 금액입니다. 하락 대기와 상관없이 매달 첫 거래일에 투자됩니다.',
         reserveB: '리밸런싱 전략에서 매달 현금으로 모아두는 금액입니다. 하락 발동이나 EMA/시그마 신호가 발생할 때 추가 매수 재원으로 사용됩니다.',
         drawdownC: '하락기준 리밸런싱의 1차 발동 기준입니다. 예를 들어 C=10이면 1배 기준 종목이 전고점 대비 -10%, -15%, -20%, -25%, -30% 하락할 때 순차 발동합니다.',
@@ -1678,13 +1693,14 @@ function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
     const modal = document.getElementById('detailModal');
     modal.style.display = 'flex';
     document.getElementById('detailModalTitle').innerText = '📊 단일 시뮬레이션 상세 분석 결과 (Warmup 보정됨)';
+    renderBundleTradeEvents(null);
     const sharesText = ticker === 'BTC' || calc.shares % 1 !== 0 ? calc.shares.toFixed(6) + " 주" : calc.shares + " 주";
     document.getElementById('tradeCountText').innerText = `총 ${slicedCandles.length}일 데이터 / 총 거래 ${calc.tradeCount}회 (매수: ${calc.buyCount}회, 매도: ${calc.sellCount}회) / MDD: -${calc.mdd.toFixed(2)}%`;
-    document.getElementById('resInvested').innerText = "$" + calc.totalInvested.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resInvested').innerHTML = formatUsdWithKrw(calc.totalInvested);
     document.getElementById('resCash').innerText = "$" + calc.cash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
     document.getElementById('resShares').innerText = sharesText;
     document.getElementById('resSharesValue').innerText = "$" + calc.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('resTotalAssets').innerText = "$" + calc.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resTotalAssets').innerHTML = formatUsdWithKrw(calc.finalTotalAssets);
     
     // v12.3: 회색 통계 박스 안에서는 수익/손실 색상보다 본문색 대비를 우선합니다.
     const yieldEl = document.getElementById('resYield'); yieldEl.innerText = (calc.yieldPer > 0 ? "+" : "") + calc.yieldPer.toFixed(2) + "%"; yieldEl.style.color = 'var(--text-main)';
@@ -1725,12 +1741,13 @@ function openBundleDetailModal(result) {
     const modal = document.getElementById('detailModal');
     modal.style.display = 'flex';
     document.getElementById('detailModalTitle').innerText = '📊 묶음 비교 상세 차트';
-    document.getElementById('tradeCountText').innerText = `${result.ticker} / ${result.strategyName} / ${result.data.length.toLocaleString()}일 데이터 / 발동·거래 ${result.extraBuys}회 / MDD: -${result.mdd.toFixed(2)}%`;
-    document.getElementById('resInvested').innerText = formatBundleMoney(result.totalInvested);
+    document.getElementById('tradeCountText').innerText = `${result.ticker} / ${result.strategyName} / ${result.data.length.toLocaleString()}일 데이터 / 발동·거래 ${formatBundleTradeSummary(result)} / MDD: -${result.mdd.toFixed(2)}%`;
+    renderBundleTradeEvents(result);
+    document.getElementById('resInvested').innerHTML = formatUsdWithKrw(result.totalInvested);
     document.getElementById('resCash').innerText = formatBundleMoney(result.cash);
     document.getElementById('resShares').innerText = result.ticker === 'BTC' || result.shares % 1 !== 0 ? result.shares.toFixed(6) + " 주" : Math.floor(result.shares).toLocaleString() + " 주";
     document.getElementById('resSharesValue').innerText = formatBundleMoney(result.shares * result.data[result.data.length - 1].close);
-    document.getElementById('resTotalAssets').innerText = formatBundleMoney(result.finalAssets);
+    document.getElementById('resTotalAssets').innerHTML = formatUsdWithKrw(result.finalAssets);
     const yieldEl = document.getElementById('resYield'); yieldEl.innerText = formatBundlePct(result.yieldPer); yieldEl.style.color = 'var(--text-main)';
     const cagrEl = document.getElementById('resCagr'); cagrEl.innerText = formatBundlePct(result.cagr); cagrEl.style.color = 'var(--text-main)';
 
@@ -1749,6 +1766,16 @@ function openBundleDetailModal(result) {
 
         const candleSeries = chartInstance.addCandlestickSeries({ upColor: '#ef5350', downColor: '#26a69a', title: result.ticker });
         candleSeries.setData(result.data);
+        if (result.tradeEvents && result.tradeEvents.length > 0) {
+            const markers = result.tradeEvents.map(event => ({
+                time: event.date,
+                position: event.actionLabel === '매도' ? 'aboveBar' : 'belowBar',
+                color: event.actionLabel === '매도' ? '#3498db' : '#e67e22',
+                shape: event.actionLabel === '매도' ? 'arrowDown' : 'arrowUp',
+                text: event.stageLabel || event.actionLabel
+            }));
+            candleSeries.setMarkers(markers);
+        }
         const portfolioLine = result.data.map((row, index) => ({
             time: row.time,
             value: result.cashSeries[index] + result.shareSeries[index] * row.close
@@ -1763,8 +1790,48 @@ function openBundleDetailModal(result) {
     }, 50);
 }
 
+function formatBundleTradeSummary(result) {
+    if (!result || !result.tradeEvents || result.tradeEvents.length === 0) return `${result ? result.extraBuys : 0}회`;
+    const stageCounts = {};
+    result.tradeEvents.forEach(event => {
+        const label = event.stageLabel || event.actionLabel || '거래';
+        stageCounts[label] = (stageCounts[label] || 0) + 1;
+    });
+    return Object.keys(stageCounts).map(label => `${label} ${stageCounts[label]}회`).join(', ');
+}
+
+function renderBundleTradeEvents(result) {
+    const box = document.getElementById('bundleTradeEventBox');
+    if (!box) return;
+    const events = result && result.tradeEvents ? result.tradeEvents : [];
+    if (events.length === 0) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+    }
+    box.style.display = 'block';
+    const rows = events.slice(0, 12).map(event => {
+        const detail = event.detail ? ` / ${event.detail}` : '';
+        return `<div style="display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px solid var(--border-color);">
+            <span>${event.date} · ${event.stageLabel || event.actionLabel}</span>
+            <span style="font-weight:bold;">${formatBundleMoney(event.amount)}${detail}</span>
+        </div>`;
+    }).join('');
+    const more = events.length > 12 ? `<div style="padding-top:5px; color:var(--text-sub);">외 ${events.length - 12}건은 요약에 포함되었습니다.</div>` : '';
+    box.innerHTML = `<div style="font-weight:bold; margin-bottom:5px;">발동/거래 단계 내역</div>${rows}${more}`;
+}
+
 function formatBundleMoney(value) {
     return "$" + (Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatKrwEok(value) {
+    const eok = ((Number(value) || 0) * USD_KRW_RATE) / 100000000;
+    return `(${eok.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}억원)`;
+}
+
+function formatUsdWithKrw(value) {
+    return `${formatBundleMoney(value)}<span class="krw-sub">${formatKrwEok(value)}</span>`;
 }
 
 function formatBundlePct(value) {
@@ -1803,7 +1870,7 @@ function calcBundleMdd(data, cashSeries, shareSeries) {
     return mdd * 100;
 }
 
-function makeBundleResult(strategyName, ticker, leverage, data, totalInvested, finalCash, finalShares, extraBuys, startDate, endDate, cashSeries, shareSeries) {
+function makeBundleResult(strategyName, ticker, leverage, data, totalInvested, finalCash, finalShares, extraBuys, startDate, endDate, cashSeries, shareSeries, tradeEvents = []) {
     if (!data || data.length === 0) return null;
     const finalPrice = data[data.length - 1].close;
     const finalAssets = finalCash + finalShares * finalPrice;
@@ -1811,7 +1878,7 @@ function makeBundleResult(strategyName, ticker, leverage, data, totalInvested, f
     const years = Math.max(0.0001, (new Date(endDate + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24 * 365.25));
     const cagr = totalInvested > 0 && finalAssets > 0 ? (Math.pow(finalAssets / totalInvested, 1 / years) - 1) * 100 : 0;
     const mdd = calcBundleMdd(data, cashSeries, shareSeries);
-    return { strategyName, ticker, leverage, totalInvested, cash: finalCash, shares: finalShares, finalAssets, yieldPer, cagr, mdd, extraBuys, data, cashSeries, shareSeries, startDate, endDate };
+    return { strategyName, ticker, leverage, totalInvested, cash: finalCash, shares: finalShares, finalAssets, yieldPer, cagr, mdd, extraBuys, tradeEvents, data, cashSeries, shareSeries, startDate, endDate };
 }
 
 function simulateBundleLumpSum(ticker, leverage, data, initialAmount, startDate, endDate) {
@@ -1822,10 +1889,14 @@ function simulateBundleLumpSum(ticker, leverage, data, initialAmount, startDate,
     return makeBundleResult('거치식', ticker, leverage, data, initialAmount, 0, shares, 0, startDate, endDate, cashSeries, shareSeries);
 }
 
-function simulateBundleMonthly(ticker, leverage, data, monthlyAmount, startDate, endDate) {
-    if (!data || data.length === 0 || monthlyAmount <= 0) return null;
+function simulateBundleMonthly(ticker, leverage, data, monthlyAmount, initialAmount, startDate, endDate) {
+    if (!data || data.length === 0 || (monthlyAmount <= 0 && initialAmount <= 0)) return null;
     let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
     const cashSeries = [], shareSeries = [];
+    if (initialAmount > 0) {
+        totalInvested += initialAmount;
+        shares += initialAmount / data[0].close;
+    }
     data.forEach(row => {
         const monthKey = row.time.slice(0, 7);
         if (monthKey !== currentMonth) {
@@ -1847,7 +1918,7 @@ function simulateBundleReserveRebalance(ticker, leverage, data, referenceData, m
 
     let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
     let referenceHigh = 0, firedStage = 0, extraBuys = 0;
-    const cashSeries = [], shareSeries = [];
+    const cashSeries = [], shareSeries = [], tradeEvents = [];
 
     data.forEach(row => {
         const monthKey = row.time.slice(0, 7);
@@ -1878,6 +1949,14 @@ function simulateBundleReserveRebalance(ticker, leverage, data, referenceData, m
                     shares += investAmount / row.close;
                     extraBuys++;
                     firedStage = stage + 1;
+                    tradeEvents.push({
+                        date: row.time,
+                        stage: stage + 1,
+                        stageLabel: `${stage + 1}차 발동`,
+                        actionLabel: '추가매수',
+                        amount: investAmount,
+                        detail: `전고점 대비 -${drawdownPct.toFixed(1)}%, 기준 -${threshold}%`
+                    });
                 }
             }
         }
@@ -1886,7 +1965,7 @@ function simulateBundleReserveRebalance(ticker, leverage, data, referenceData, m
         shareSeries.push(shares);
     });
 
-    return makeBundleResult('적립식 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, extraBuys, startDate, endDate, cashSeries, shareSeries);
+    return makeBundleResult('적립식 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, extraBuys, startDate, endDate, cashSeries, shareSeries, tradeEvents);
 }
 
 function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, monthlyReserve, emaN, buySigma, sellSigma, startDate, endDate) {
@@ -1896,7 +1975,7 @@ function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, mon
     const sdValues = closePrices.map((_, index) => calculateStdDev(closePrices, index, emaN));
     let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
     let actionCount = 0, buyArmed = true, sellArmed = true;
-    const cashSeries = [], shareSeries = [];
+    const cashSeries = [], shareSeries = [], tradeEvents = [];
 
     data.forEach((row, index) => {
         const monthKey = row.time.slice(0, 7);
@@ -1927,12 +2006,26 @@ function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, mon
                 shares += investAmount / row.close;
                 actionCount++;
                 buyArmed = false;
+                tradeEvents.push({
+                    date: row.time,
+                    stageLabel: 'EMA 매수',
+                    actionLabel: '매수',
+                    amount: investAmount,
+                    detail: `EMA ${emaN}일 -${buySigma}σ 이하`
+                });
             } else if (sellArmed && shares > 0 && row.close >= sellLine) {
                 const sellShares = shares * 0.25;
                 shares -= sellShares;
                 cash += sellShares * row.close;
                 actionCount++;
                 sellArmed = false;
+                tradeEvents.push({
+                    date: row.time,
+                    stageLabel: 'EMA 매도',
+                    actionLabel: '매도',
+                    amount: sellShares * row.close,
+                    detail: `EMA ${emaN}일 +${sellSigma}σ 이상`
+                });
             }
         }
 
@@ -1940,7 +2033,7 @@ function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, mon
         shareSeries.push(shares);
     });
 
-    return makeBundleResult('EMA/시그마 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, actionCount, startDate, endDate, cashSeries, shareSeries);
+    return makeBundleResult('EMA/시그마 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, actionCount, startDate, endDate, cashSeries, shareSeries, tradeEvents);
 }
 
 async function loadBundleData(ticker, endDate, options) {
@@ -1987,6 +2080,7 @@ async function runBundleComparison() {
     const years = parseBundleNumber('bundle_years', 10);
     const initialX = parseBundleNumber('bundle_initial_x', 10000);
     const monthlyX = parseBundleNumber('bundle_monthly_x', 500);
+    const monthlyInitial = parseBundleNumber('bundle_monthly_initial', 0);
     const monthlyA = parseBundleNumber('bundle_regular_a', 300);
     const monthlyB = parseBundleNumber('bundle_reserve_b', 200);
     const drawdownC = parseBundleNumber('bundle_drawdown_c', 10);
@@ -2026,13 +2120,13 @@ async function runBundleComparison() {
             const data = filterBundleData(dataByTicker[member.ticker], commonStart, endDate);
             [
                 simulateBundleLumpSum(member.ticker, member.leverage, data, initialX, commonStart, endDate),
-                simulateBundleMonthly(member.ticker, member.leverage, data, monthlyX, commonStart, endDate),
+                simulateBundleMonthly(member.ticker, member.leverage, data, monthlyX, monthlyInitial, commonStart, endDate),
                 simulateBundleReserveRebalance(member.ticker, member.leverage, data, referenceData, monthlyA, monthlyB, drawdownC, commonStart, endDate),
                 simulateBundleEmaSigmaRebalance(member.ticker, member.leverage, data, monthlyA, monthlyB, emaN, buySigma, sellSigma, commonStart, endDate)
             ].forEach(item => { if (item) results.push(item); });
         });
 
-        renderBundleResults(results, preset, commonStart, endDate, { initialX, monthlyX, monthlyA, monthlyB, drawdownC, emaN, buySigma, sellSigma });
+        renderBundleResults(results, preset, commonStart, endDate, { initialX, monthlyX, monthlyInitial, monthlyA, monthlyB, drawdownC, emaN, buySigma, sellSigma });
         progBar.style.width = '100%';
         progText.innerText = '묶음 비교 완료';
     } catch (e) {
@@ -2069,20 +2163,20 @@ function renderBundleResults(results, preset, startDate, endDate, params) {
             <td style="font-weight:bold;">${res.ticker}</td>
             <td>${res.leverage}배</td>
             <td>${res.strategyName}</td>
-            <td>${formatBundleMoney(res.totalInvested)}</td>
-            <td style="font-weight:bold; color:var(--primary-color);">${formatBundleMoney(res.finalAssets)}</td>
+            <td>${formatUsdWithKrw(res.totalInvested)}</td>
+            <td style="font-weight:bold; color:var(--primary-color);">${formatUsdWithKrw(res.finalAssets)}</td>
             <td>${formatBundleMoney(res.cash)}</td>
             <td>${shareText}</td>
             <td style="font-weight:bold; color:${yieldColor};">${formatBundlePct(res.yieldPer)}</td>
             <td style="font-weight:bold; color:${cagrColor};">${formatBundlePct(res.cagr)}</td>
             <td style="font-weight:bold; color:#e67e22;">-${res.mdd.toFixed(2)}%</td>
-            <td>${res.extraBuys}회</td>
+            <td>${formatBundleTradeSummary(res)}</td>
         `;
         row.onclick = () => openBundleDetailModal(res);
         tbody.appendChild(row);
     });
 
-    document.getElementById('bundleResultInfo').innerText = `${preset.label} / 실제 계산 구간: ${startDate} ~ ${endDate} / 거치식 X=${formatBundleMoney(params.initialX)}, 적립식 X=${formatBundleMoney(params.monthlyX)}, 리밸런싱 A=${formatBundleMoney(params.monthlyA)} + B=${formatBundleMoney(params.monthlyB)}, 하락 C=${params.drawdownC}%, EMA ${params.emaN}일, 매수 -${params.buySigma}σ, 매도 +${params.sellSigma}σ`;
+    document.getElementById('bundleResultInfo').innerText = `${preset.label} / 실제 계산 구간: ${startDate} ~ ${endDate} / 거치식 X=${formatBundleMoney(params.initialX)}, 적립식 초기=${formatBundleMoney(params.monthlyInitial)} + 월 ${formatBundleMoney(params.monthlyX)}, 리밸런싱 A=${formatBundleMoney(params.monthlyA)} + B=${formatBundleMoney(params.monthlyB)}, 하락 C=${params.drawdownC}%, EMA ${params.emaN}일, 매수 -${params.buySigma}σ, 매도 +${params.sellSigma}σ`;
     renderBundleSummaryChart(results);
     hasBundleRun = true;
     document.getElementById('bundleResultsArea').style.display = 'block';
@@ -2100,17 +2194,22 @@ function renderBundleSummaryChart(results) {
         if (items.length === 0) return '';
         const bars = items.map((item, index) => {
             const width = Math.max(3, (item.finalAssets / maxAssets) * 100);
+            const investedWidth = Math.max(2, (item.totalInvested / maxAssets) * 100);
             const color = colors[index % colors.length];
             const profitText = formatBundlePct(item.yieldPer);
             return `
                 <div class="bundle-bar-row" onclick="openBundleDetailModal(bundleResultLookup['${item.bundleResultId}'])">
                     <div class="bundle-bar-label">${item.ticker} ${item.leverage}배</div>
                     <div class="bundle-bar-track">
-                        <div class="bundle-bar-fill" style="width:${width.toFixed(2)}%; background:${color};">${profitText}</div>
+                        <div class="bundle-bar-final" style="width:${width.toFixed(2)}%; background:${color};"></div>
+                        <div class="bundle-bar-invested" title="투입 ${formatBundleMoney(item.totalInvested)}" style="width:${investedWidth.toFixed(2)}%;"></div>
+                        <div class="bundle-bar-text">
+                            <span>${item.ticker} ${profitText} / 최종 ${formatBundleMoney(item.finalAssets)} / 투입 ${formatBundleMoney(item.totalInvested)}</span>
+                            <span class="krw-sub" style="color:white; opacity:0.95;">최종 ${formatKrwEok(item.finalAssets)} / 투입 ${formatKrwEok(item.totalInvested)}</span>
+                        </div>
                     </div>
                     <div class="bundle-bar-meta">
-                        <b>${formatBundleMoney(item.finalAssets)}</b><br>
-                        투입 ${formatBundleMoney(item.totalInvested)}
+                        ${profitText}
                     </div>
                 </div>
             `;
@@ -2229,11 +2328,11 @@ function renderSweepTable(results, ticker) {
             <td style="font-weight:bold; color:var(--primary-color);">${index + 1}위</td>
             <td style="font-weight:bold;">${res.N}일</td>
             <td style="font-weight:bold;">${res.SIGMA.toFixed(1)}</td>
-            <td>$${res.totalInvested.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td>${formatUsdWithKrw(res.totalInvested)}</td>
             <td>$${res.cash.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
             <td>${sharesDisp}</td>
             <td>$${res.finalSharesValue.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
-            <td style="font-weight:bold; color:var(--primary-color);">$${res.finalTotalAssets.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+            <td style="font-weight:bold; color:var(--primary-color);">${formatUsdWithKrw(res.finalTotalAssets)}</td>
             <td style="color:${yieldColor}; font-weight:bold;">${yieldPrefix}${res.yieldPer.toFixed(2)}%</td>
             <td style="color:${cagrColor}; font-weight:bold;">${cagrPrefix}${res.cagr.toFixed(2)}%</td>
             <td style="color:#e67e22; font-weight:bold;">-${res.mdd.toFixed(2)}%</td>
