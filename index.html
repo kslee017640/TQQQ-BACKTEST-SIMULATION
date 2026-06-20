@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v13.0</title>
+    <title>퀀트 백테스터 Pro v13.1</title>
+    <!-- v13.1 CODEX: 기존 백테스터와 레버리지 묶음 비교를 모드 선택으로 분리하고, 상장일/전체기간/묶음 비교 조건을 개선했습니다. -->
     <!-- v13.0 CODEX: 1배/2배/3배 레버리지 묶음을 거치식, 적립식, 하락발동 적립식 리밸런싱으로 비교하는 별도 시뮬레이터를 추가했습니다. -->
     <!-- v12.9 CODEX: TSLA/AAPL/BTC/NVDA 단일종목 레버리지 ETF와 주요 고거래 레버리지 ETF 자동 합성 매핑을 추가했습니다. -->
     <!-- v12.8 CODEX: QQQ/TQQQ 전용 합성 로직을 레버리지 ETF 공통 합성 로직으로 일반화하고 SOXX-USD-SOXL 관계를 추가했습니다. -->
@@ -130,6 +131,7 @@
         
         .chart-legend { position: absolute; top: 15px; left: 15px; z-index: 10; font-size: 11px; font-family: 'Courier New', Courier, monospace; background: rgba(255, 255, 255, 0.85); color: #333333; padding: 10px; border-radius: 6px; border: 1px solid #dddddd; pointer-events: none; line-height: 1.5; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
         [data-theme="dark"] .chart-legend { background: rgba(30, 30, 30, 0.85); color: #e0e0e0; border-color: #444444; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+        .classic-mode-section, .bundle-mode-section { display: none; }
 
         @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } }
     </style>
@@ -145,11 +147,19 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.0</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.1</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
-    <div class="card">
+    <div class="card" id="modeSelectCard">
+        <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">시작 모드 선택</h3>
+        <div class="quick-btn-group" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+            <button type="button" class="main-btn" onclick="switchAppMode('classic')">기존 백테스터</button>
+            <button type="button" class="main-btn" onclick="switchAppMode('bundle')">레버리지 묶음 비교</button>
+        </div>
+    </div>
+
+    <div class="card classic-mode-section">
         <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">1단계: 기본 설정</h3>
         
         <div class="input-row">
@@ -275,7 +285,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card classic-mode-section">
         <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">2단계: 매수/매도 수량 설정</h3>
         
         <div id="manual_strategy_ui">
@@ -310,7 +320,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card classic-mode-section">
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('single_tab')">🎯 단일 백테스트</button>
             <button class="tab-btn" onclick="switchTab('sweep_tab')">⚡ 단일 기간 스윕</button>
@@ -335,15 +345,15 @@
             <h4 style="margin: 5px 0 10px 0; font-size: 13px; color: var(--text-sub);">※ 단일 선택 기간에 대한 파라미터 최적값 스윕 범위 설정</h4>
             <div class="input-row">
                 <div class="input-group">
-                    <label>N 시작값</label>
+                    <label>EMA N일 시작값</label>
                     <input type="number" id="n_start" value="20" min="5">
                 </div>
                 <div class="input-group">
-                    <label>N 종료값</label>
+                    <label>EMA N일 종료값</label>
                     <input type="number" id="n_end" value="200" min="5">
                 </div>
                 <div class="input-group">
-                    <label>N 증가분(Step)</label>
+                    <label>EMA N일 증가분(Step)</label>
                     <input type="number" id="n_step" value="20" min="1">
                 </div>
             </div>
@@ -376,15 +386,15 @@
             </h4>
             <div class="input-row">
                 <div class="input-group">
-                    <label>N 시작값</label>
+                    <label>EMA N일 시작값</label>
                     <input type="number" id="rn_start" value="20" min="5">
                 </div>
                 <div class="input-group">
-                    <label>N 종료값</label>
+                    <label>EMA N일 종료값</label>
                     <input type="number" id="rn_end" value="200" min="5">
                 </div>
                 <div class="input-group">
-                    <label>N 증가분(Step)</label>
+                    <label>EMA N일 증가분(Step)</label>
                     <input type="number" id="rn_step" value="20" min="1">
                 </div>
             </div>
@@ -412,7 +422,7 @@
         </div>
     </div>
 
-    <div class="card">
+    <div class="card bundle-mode-section" style="display:none;">
         <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">별도 기능: 1배/2배/3배 묶음 투자 비교</h3>
         <div class="input-row">
             <div class="input-group">
@@ -429,11 +439,11 @@
             </div>
             <div class="input-group">
                 <label for="bundle_years">분석 기간 Y년</label>
-                <input type="number" id="bundle_years" value="10" min="1" max="50" step="1">
+                <input type="number" id="bundle_years" value="10" min="1" max="50" step="1" oninput="updateBundleMonthlyFromInitial()">
             </div>
             <div class="input-group">
                 <label for="bundle_initial_x">거치식 초기자본 X ($)</label>
-                <input type="number" id="bundle_initial_x" value="10000" min="0" step="100">
+                <input type="number" id="bundle_initial_x" value="10000" min="0" step="100" oninput="updateBundleMonthlyFromInitial()">
             </div>
             <div class="input-group">
                 <label for="bundle_monthly_x">적립식 월 투자금 X ($)</label>
@@ -460,6 +470,21 @@
             </div>
         </div>
 
+        <div class="input-row">
+            <div class="input-group">
+                <label for="bundle_ema_n">EMA N일 기준</label>
+                <input type="number" id="bundle_ema_n" value="120" min="5" step="1">
+            </div>
+            <div class="input-group">
+                <label for="bundle_buy_sigma">EMA 아래 매수 기준(σ)</label>
+                <input type="number" id="bundle_buy_sigma" value="1.0" min="0.1" step="0.1">
+            </div>
+            <div class="input-group">
+                <label for="bundle_sell_sigma">EMA 위 매도 기준(σ)</label>
+                <input type="number" id="bundle_sell_sigma" value="1.0" min="0.1" step="0.1">
+            </div>
+        </div>
+
         <p id="bundlePresetInfo" style="font-size: 12px; color: var(--text-sub); margin: 0 0 10px 0;">
             전고점 대비 C%, C+5%, C+10%, C+15%, C+20% 하락 시 남은 현금풀의 15%, 20%, 30%, 40%, 50%를 순차 투입합니다.
         </p>
@@ -471,7 +496,7 @@
         </div>
     </div>
 
-    <div id="bundleResultsArea" class="card" style="display: none;">
+    <div id="bundleResultsArea" class="card bundle-mode-section" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">📊 1배/2배/3배 묶음 투자 비교 결과</h2>
         <p id="bundleResultInfo" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;"></p>
         <div class="table-container">
@@ -488,7 +513,7 @@
                         <th>수익률</th>
                         <th>CAGR</th>
                         <th>MDD</th>
-                        <th>추가매수</th>
+                        <th>발동/거래</th>
                     </tr>
                 </thead>
                 <tbody id="bundleResultsBody"></tbody>
@@ -496,7 +521,7 @@
         </div>
     </div>
 
-    <div id="sweepResultsArea" class="card" style="display: none;">
+    <div id="sweepResultsArea" class="card classic-mode-section" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">🏆 단일 기간 스윕 랭킹</h2>
         <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 표출</b>됩니다.</p>
         
@@ -525,7 +550,7 @@
         </div>
     </div>
 
-    <div id="robustResultsArea" class="card" style="display: none;">
+    <div id="robustResultsArea" class="card classic-mode-section" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">🏆 통계적 다중 기간 최적 랭킹 (BEST → WORST)</h2>
         <p id="robustPeriodInfo" style="font-size: 13px; color: var(--primary-color); margin-bottom: 5px; font-weight: bold;"></p>
         <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 표출</b>됩니다.</p>
@@ -603,6 +628,7 @@
 let chartInstance = null;
 let hasSweepRun = false;
 let hasRobustSweepRun = false;
+let hasBundleRun = false;
 
 function showMessageBox(msg) {
     document.getElementById('msgBoxText').innerText = msg;
@@ -610,6 +636,26 @@ function showMessageBox(msg) {
 }
 function closeMsgBox() {
     document.getElementById('msgBoxOverlay').style.display = 'none';
+}
+
+function switchAppMode(mode) {
+    const classicVisible = mode === 'classic';
+    document.querySelectorAll('.classic-mode-section').forEach(el => {
+        if (el.id === 'sweepResultsArea') {
+            el.style.display = classicVisible && hasSweepRun ? 'block' : 'none';
+        } else if (el.id === 'robustResultsArea') {
+            el.style.display = classicVisible && hasRobustSweepRun ? 'block' : 'none';
+        } else {
+            el.style.display = classicVisible ? 'block' : 'none';
+        }
+    });
+    document.querySelectorAll('.bundle-mode-section').forEach(el => {
+        if (el.id === 'bundleResultsArea') {
+            el.style.display = !classicVisible && hasBundleRun ? 'block' : 'none';
+        } else {
+            el.style.display = !classicVisible ? 'block' : 'none';
+        }
+    });
 }
 
 const csvUrls = {
@@ -815,6 +861,7 @@ function buildTickerSearchSources(ticker) {
 
 let tickerLookupTimer = null;
 let tickerInfoCache = {};
+let tickerFirstDateCache = {};
 
 function setTickerInfo(message, state = '') {
     const info = document.getElementById('tickerInfo');
@@ -826,6 +873,21 @@ function setTickerInfo(message, state = '') {
 function scheduleTickerLookup() {
     if (tickerLookupTimer) clearTimeout(tickerLookupTimer);
     tickerLookupTimer = setTimeout(() => lookupTickerInfo(), 500);
+}
+
+async function getTickerFirstDataDate(ticker) {
+    const symbol = String(ticker || '').trim().toUpperCase();
+    if (!symbol) return '';
+    if (tickerFirstDateCache[symbol]) return tickerFirstDateCache[symbol];
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const rows = await fetchParsedDataFromSources(symbol, today, {}, 1, 0);
+        const firstDate = rows && rows.length > 0 ? rows[0].time : '';
+        if (firstDate) tickerFirstDateCache[symbol] = firstDate;
+        return firstDate;
+    } catch (e) {
+        return '';
+    }
 }
 
 async function lookupTickerInfo() {
@@ -855,7 +917,10 @@ async function lookupTickerInfo() {
                 if (syntheticLeverageOption) {
                     syntheticLeverageOption.style.display = getLeveragedSyntheticConfig(ticker) ? 'inline-flex' : 'none';
                 }
-                setTickerInfo(`${exact.symbol}: ${fullName} / ${exchange} / ${type}`, 'success');
+                const baseInfoText = `${exact.symbol}: ${fullName} / ${exchange} / ${type}`;
+                setTickerInfo(`${baseInfoText} / 첫 데이터일 확인 중...`, 'success');
+                const firstDate = await getTickerFirstDataDate(exact.symbol);
+                setTickerInfo(firstDate ? `${baseInfoText} / 첫 데이터일: ${firstDate}` : baseInfoText, 'success');
                 return exact;
             }
 
@@ -940,6 +1005,7 @@ window.onload = function() {
     document.getElementById('bundle_end_date').value = document.getElementById('end_date').value;
     handleTickerChange();
     handleBundlePresetChange();
+    updateBundleMonthlyFromInitial();
     lookupTickerInfo();
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         toggleTheme();
@@ -953,11 +1019,18 @@ window.onload = function() {
     });
 };
 
-function setQuickDate(years) {
+async function setQuickDate(years) {
     const ticker = getTickerValue();
     const useListingStart = document.getElementById('use_listing_start');
     if (years === 'all') {
         if (useListingStart) useListingStart.checked = true;
+        document.getElementById('dataRangeInfo').innerText = "첫 데이터일을 확인 중입니다...";
+        const firstDate = await getTickerFirstDataDate(ticker);
+        if (firstDate) {
+            document.getElementById('start_date').value = firstDate;
+            document.getElementById('dataRangeInfo').innerText = `${ticker} 전체 기간 시작일: ${firstDate}`;
+            return;
+        }
         document.getElementById('dataRangeInfo').innerText = "다음 실행 시 데이터 첫 거래일부터 자동 분석합니다.";
     } else {
         if (useListingStart) useListingStart.checked = false;
@@ -1734,6 +1807,60 @@ function simulateBundleReserveRebalance(ticker, leverage, data, referenceData, m
     return makeBundleResult('적립식 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, extraBuys, startDate, endDate, cashSeries, shareSeries);
 }
 
+function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, monthlyReserve, emaN, buySigma, sellSigma, startDate, endDate) {
+    if (!data || data.length === 0 || (monthlyBuy <= 0 && monthlyReserve <= 0)) return null;
+    const closePrices = data.map(row => row.close);
+    const emaValues = calculateEMA(closePrices, emaN);
+    const sdValues = closePrices.map((_, index) => calculateStdDev(closePrices, index, emaN));
+    let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
+    let actionCount = 0, buyArmed = true, sellArmed = true;
+    const cashSeries = [], shareSeries = [];
+
+    data.forEach((row, index) => {
+        const monthKey = row.time.slice(0, 7);
+        if (monthKey !== currentMonth) {
+            currentMonth = monthKey;
+            if (monthlyBuy > 0) {
+                totalInvested += monthlyBuy;
+                shares += monthlyBuy / row.close;
+            }
+            if (monthlyReserve > 0) {
+                totalInvested += monthlyReserve;
+                cash += monthlyReserve;
+            }
+        }
+
+        if (index >= emaN) {
+            const ema = emaValues[index];
+            const sd = sdValues[index];
+            const buyLine = ema - buySigma * sd;
+            const sellLine = ema + sellSigma * sd;
+
+            if (row.close > ema) buyArmed = true;
+            if (row.close < ema) sellArmed = true;
+
+            if (buyArmed && cash > 0 && row.close <= buyLine) {
+                const investAmount = cash * 0.5;
+                cash -= investAmount;
+                shares += investAmount / row.close;
+                actionCount++;
+                buyArmed = false;
+            } else if (sellArmed && shares > 0 && row.close >= sellLine) {
+                const sellShares = shares * 0.25;
+                shares -= sellShares;
+                cash += sellShares * row.close;
+                actionCount++;
+                sellArmed = false;
+            }
+        }
+
+        cashSeries.push(cash);
+        shareSeries.push(shares);
+    });
+
+    return makeBundleResult('EMA/시그마 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, actionCount, startDate, endDate, cashSeries, shareSeries);
+}
+
 async function loadBundleData(ticker, endDate, options) {
     const savedStart = document.getElementById('start_date').value;
     const savedEnd = document.getElementById('end_date').value;
@@ -1760,6 +1887,13 @@ function handleBundlePresetChange() {
     info.innerText = `${preset.label}: ${preset.referenceTicker} 전고점 기준으로 C%, C+5%, C+10%, C+15%, C+20% 하락 시 남은 현금풀의 15%, 20%, 30%, 40%, 50%를 순차 투입합니다.`;
 }
 
+function updateBundleMonthlyFromInitial() {
+    const years = parseBundleNumber('bundle_years', 10);
+    const initialX = parseBundleNumber('bundle_initial_x', 0);
+    const months = Math.max(1, Math.round(years * 12));
+    document.getElementById('bundle_monthly_x').value = (initialX / months).toFixed(2);
+}
+
 async function runBundleComparison() {
     const btn = document.getElementById('bundleCompareBtn');
     const progContainer = document.getElementById('bundleProgressContainer');
@@ -1774,6 +1908,9 @@ async function runBundleComparison() {
     const monthlyA = parseBundleNumber('bundle_regular_a', 300);
     const monthlyB = parseBundleNumber('bundle_reserve_b', 200);
     const drawdownC = parseBundleNumber('bundle_drawdown_c', 10);
+    const emaN = parseInt(document.getElementById('bundle_ema_n').value, 10) || 120;
+    const buySigma = parseBundleNumber('bundle_buy_sigma', 1);
+    const sellSigma = parseBundleNumber('bundle_sell_sigma', 1);
     const endDate = document.getElementById('bundle_end_date').value || document.getElementById('end_date').value || new Date().toISOString().split('T')[0];
     const requestedStart = getBundleStartDate(endDate, years);
 
@@ -1808,11 +1945,12 @@ async function runBundleComparison() {
             [
                 simulateBundleLumpSum(member.ticker, member.leverage, data, initialX, commonStart, endDate),
                 simulateBundleMonthly(member.ticker, member.leverage, data, monthlyX, commonStart, endDate),
-                simulateBundleReserveRebalance(member.ticker, member.leverage, data, referenceData, monthlyA, monthlyB, drawdownC, commonStart, endDate)
+                simulateBundleReserveRebalance(member.ticker, member.leverage, data, referenceData, monthlyA, monthlyB, drawdownC, commonStart, endDate),
+                simulateBundleEmaSigmaRebalance(member.ticker, member.leverage, data, monthlyA, monthlyB, emaN, buySigma, sellSigma, commonStart, endDate)
             ].forEach(item => { if (item) results.push(item); });
         });
 
-        renderBundleResults(results, preset, commonStart, endDate, { initialX, monthlyX, monthlyA, monthlyB, drawdownC });
+        renderBundleResults(results, preset, commonStart, endDate, { initialX, monthlyX, monthlyA, monthlyB, drawdownC, emaN, buySigma, sellSigma });
         progBar.style.width = '100%';
         progText.innerText = '묶음 비교 완료';
     } catch (e) {
@@ -1827,10 +1965,17 @@ async function runBundleComparison() {
 function renderBundleResults(results, preset, startDate, endDate, params) {
     const tbody = document.getElementById('bundleResultsBody');
     tbody.innerHTML = '';
-    const strategyOrder = { '거치식': 1, '적립식': 2, '적립식 리밸런싱': 3 };
-    results.sort((a, b) => a.leverage - b.leverage || strategyOrder[a.strategyName] - strategyOrder[b.strategyName] || a.ticker.localeCompare(b.ticker));
+    const strategyOrder = { '거치식': 1, '적립식': 2, '적립식 리밸런싱': 3, 'EMA/시그마 리밸런싱': 4 };
+    results.sort((a, b) => strategyOrder[a.strategyName] - strategyOrder[b.strategyName] || a.leverage - b.leverage || a.ticker.localeCompare(b.ticker));
 
+    let currentStrategy = '';
     results.forEach(res => {
+        if (res.strategyName !== currentStrategy) {
+            currentStrategy = res.strategyName;
+            const groupRow = document.createElement('tr');
+            groupRow.innerHTML = `<td colspan="11" style="font-weight:bold; background:var(--bg-color); color:var(--primary-color); text-align:left;">${currentStrategy} 1배/2배/3배 비교</td>`;
+            tbody.appendChild(groupRow);
+        }
         const row = document.createElement('tr');
         const yieldColor = res.yieldPer >= 0 ? '#ff4d4d' : '#3498db';
         const cagrColor = res.cagr >= 0 ? '#ff4d4d' : '#3498db';
@@ -1851,7 +1996,8 @@ function renderBundleResults(results, preset, startDate, endDate, params) {
         tbody.appendChild(row);
     });
 
-    document.getElementById('bundleResultInfo').innerText = `${preset.label} / 실제 계산 구간: ${startDate} ~ ${endDate} / 거치식 X=${formatBundleMoney(params.initialX)}, 적립식 X=${formatBundleMoney(params.monthlyX)}, 리밸런싱 A=${formatBundleMoney(params.monthlyA)} + B=${formatBundleMoney(params.monthlyB)}, 1차 하락 기준 C=${params.drawdownC}%`;
+    document.getElementById('bundleResultInfo').innerText = `${preset.label} / 실제 계산 구간: ${startDate} ~ ${endDate} / 거치식 X=${formatBundleMoney(params.initialX)}, 적립식 X=${formatBundleMoney(params.monthlyX)}, 리밸런싱 A=${formatBundleMoney(params.monthlyA)} + B=${formatBundleMoney(params.monthlyB)}, 하락 C=${params.drawdownC}%, EMA ${params.emaN}일, 매수 -${params.buySigma}σ, 매도 +${params.sellSigma}σ`;
+    hasBundleRun = true;
     document.getElementById('bundleResultsArea').style.display = 'block';
 }
 
