@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v13.2</title>
+    <title>퀀트 백테스터 Pro v13.3</title>
+    <!-- v13.3 CODEX: 묶음 비교 결과 상단에 최종자산/투입금/수익률 막대그래프 요약을 추가했습니다. -->
     <!-- v13.2 CODEX: 묶음 비교 결과표 전체 표시, 결과 행 차트 팝업, 입력 도움말 버튼을 추가했습니다. -->
     <!-- v13.1 CODEX: 기존 백테스터와 레버리지 묶음 비교를 모드 선택으로 분리하고, 상장일/전체기간/묶음 비교 조건을 개선했습니다. -->
     <!-- v13.0 CODEX: 1배/2배/3배 레버리지 묶음을 거치식, 적립식, 하락발동 적립식 리밸런싱으로 비교하는 별도 시뮬레이터를 추가했습니다. -->
@@ -113,6 +114,14 @@
         .bundle-results-table th, .bundle-results-table td { position: static !important; left: auto !important; width: auto !important; min-width: 0 !important; padding: 9px 4px !important; box-shadow: none !important; white-space: normal; word-break: keep-all; }
         .bundle-results-table th { top: auto; }
         .bundle-results-table .bundle-group-row td { cursor: default; text-align: left; }
+        .bundle-summary { display: flex; flex-direction: column; gap: 14px; margin: 12px 0 18px 0; }
+        .bundle-summary-section { border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--card-bg); }
+        .bundle-summary-title { font-size: 13px; font-weight: bold; color: var(--primary-color); margin-bottom: 8px; }
+        .bundle-bar-row { display: grid; grid-template-columns: 92px minmax(120px, 1fr) 190px; gap: 8px; align-items: center; margin: 7px 0; font-size: 12px; }
+        .bundle-bar-label { font-weight: bold; color: var(--text-main); }
+        .bundle-bar-track { height: 24px; background: var(--btn-bg); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color); }
+        .bundle-bar-fill { height: 100%; min-width: 4px; display: flex; align-items: center; padding-left: 6px; color: white; font-weight: bold; white-space: nowrap; box-sizing: border-box; }
+        .bundle-bar-meta { color: var(--text-main); line-height: 1.35; }
         .help-btn { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: 4px; border-radius: 50%; border: 1px solid var(--border-color); background: var(--btn-bg); color: var(--text-main); font-size: 12px; font-weight: bold; cursor: pointer; vertical-align: middle; }
         .help-btn:hover { filter: brightness(0.9); }
 
@@ -155,7 +164,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.2</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.3</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -507,6 +516,7 @@
     <div id="bundleResultsArea" class="card bundle-mode-section" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">📊 1배/2배/3배 묶음 투자 비교 결과</h2>
         <p id="bundleResultInfo" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;"></p>
+        <div id="bundleSummaryChart" class="bundle-summary"></div>
         <div class="table-container bundle-table-container">
             <table class="sweep-table bundle-results-table">
                 <thead>
@@ -637,6 +647,7 @@ let chartInstance = null;
 let hasSweepRun = false;
 let hasRobustSweepRun = false;
 let hasBundleRun = false;
+let bundleResultLookup = {};
 
 function showMessageBox(msg) {
     document.getElementById('msgBoxText').innerText = msg;
@@ -2036,8 +2047,10 @@ async function runBundleComparison() {
 function renderBundleResults(results, preset, startDate, endDate, params) {
     const tbody = document.getElementById('bundleResultsBody');
     tbody.innerHTML = '';
+    bundleResultLookup = {};
     const strategyOrder = { '거치식': 1, '적립식': 2, '적립식 리밸런싱': 3, 'EMA/시그마 리밸런싱': 4 };
     results.sort((a, b) => strategyOrder[a.strategyName] - strategyOrder[b.strategyName] || a.leverage - b.leverage || a.ticker.localeCompare(b.ticker));
+    results.forEach((item, index) => { item.bundleResultId = `bundle_${index}`; bundleResultLookup[item.bundleResultId] = item; });
 
     let currentStrategy = '';
     results.forEach(res => {
@@ -2070,8 +2083,40 @@ function renderBundleResults(results, preset, startDate, endDate, params) {
     });
 
     document.getElementById('bundleResultInfo').innerText = `${preset.label} / 실제 계산 구간: ${startDate} ~ ${endDate} / 거치식 X=${formatBundleMoney(params.initialX)}, 적립식 X=${formatBundleMoney(params.monthlyX)}, 리밸런싱 A=${formatBundleMoney(params.monthlyA)} + B=${formatBundleMoney(params.monthlyB)}, 하락 C=${params.drawdownC}%, EMA ${params.emaN}일, 매수 -${params.buySigma}σ, 매도 +${params.sellSigma}σ`;
+    renderBundleSummaryChart(results);
     hasBundleRun = true;
     document.getElementById('bundleResultsArea').style.display = 'block';
+}
+
+function renderBundleSummaryChart(results) {
+    const container = document.getElementById('bundleSummaryChart');
+    if (!container) return;
+    const strategyOrder = ['거치식', '적립식', '적립식 리밸런싱', 'EMA/시그마 리밸런싱'];
+    const maxAssets = Math.max(...results.map(item => item.finalAssets), 1);
+    const colors = ['#4CAF50', '#2E7D32', '#1976D2', '#7B1FA2', '#F57C00'];
+
+    container.innerHTML = strategyOrder.map(strategy => {
+        const items = results.filter(item => item.strategyName === strategy);
+        if (items.length === 0) return '';
+        const bars = items.map((item, index) => {
+            const width = Math.max(3, (item.finalAssets / maxAssets) * 100);
+            const color = colors[index % colors.length];
+            const profitText = formatBundlePct(item.yieldPer);
+            return `
+                <div class="bundle-bar-row" onclick="openBundleDetailModal(bundleResultLookup['${item.bundleResultId}'])">
+                    <div class="bundle-bar-label">${item.ticker} ${item.leverage}배</div>
+                    <div class="bundle-bar-track">
+                        <div class="bundle-bar-fill" style="width:${width.toFixed(2)}%; background:${color};">${profitText}</div>
+                    </div>
+                    <div class="bundle-bar-meta">
+                        <b>${formatBundleMoney(item.finalAssets)}</b><br>
+                        투입 ${formatBundleMoney(item.totalInvested)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+        return `<div class="bundle-summary-section"><div class="bundle-summary-title">${strategy} 최종자산 / 투입금 / 수익률</div>${bars}</div>`;
+    }).join('');
 }
 
 // 🎯 [단일 백테스트]
