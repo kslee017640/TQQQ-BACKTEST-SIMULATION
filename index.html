@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v12.8</title>
+    <title>퀀트 백테스터 Pro v13.0</title>
+    <!-- v13.0 CODEX: 1배/2배/3배 레버리지 묶음을 거치식, 적립식, 하락발동 적립식 리밸런싱으로 비교하는 별도 시뮬레이터를 추가했습니다. -->
+    <!-- v12.9 CODEX: TSLA/AAPL/BTC/NVDA 단일종목 레버리지 ETF와 주요 고거래 레버리지 ETF 자동 합성 매핑을 추가했습니다. -->
     <!-- v12.8 CODEX: QQQ/TQQQ 전용 합성 로직을 레버리지 ETF 공통 합성 로직으로 일반화하고 SOXX-USD-SOXL 관계를 추가했습니다. -->
     <!-- v12.7 CODEX: TQQQ 상장 전 구간을 QQQ 3배 합성 데이터로 역산 연결하는 옵션을 추가했습니다. -->
     <!-- v12.6 CODEX: Cloudflare Pages 배포용 functions/proxy.js 구조를 추가했습니다. -->
@@ -143,7 +145,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v12.8</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v13.0</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -165,10 +167,44 @@
                     <option value="SPXL"></option>
                     <option value="SSO"></option>
                     <option value="SPUU"></option>
-                    <option value="AAPL"></option>
                     <option value="TSLA"></option>
+                    <option value="TSLL"></option>
+                    <option value="TSLT"></option>
+                    <option value="AAPL"></option>
+                    <option value="AAPU"></option>
+                    <option value="AAPB"></option>
+                    <option value="BITU"></option>
+                    <option value="BITX"></option>
                     <option value="NVDA"></option>
+                    <option value="NVDL"></option>
+                    <option value="NVDU"></option>
+                    <option value="MSTR"></option>
+                    <option value="MSTU"></option>
+                    <option value="MSTX"></option>
+                    <option value="AMZN"></option>
+                    <option value="AMZU"></option>
+                    <option value="META"></option>
+                    <option value="METU"></option>
                     <option value="MSFT"></option>
+                    <option value="MSFU"></option>
+                    <option value="GOOGL"></option>
+                    <option value="GGLL"></option>
+                    <option value="PLTR"></option>
+                    <option value="PTIR"></option>
+                    <option value="NFXL"></option>
+                    <option value="CONL"></option>
+                    <option value="LABU"></option>
+                    <option value="TECL"></option>
+                    <option value="FAS"></option>
+                    <option value="TNA"></option>
+                    <option value="UDOW"></option>
+                    <option value="ROM"></option>
+                    <option value="UWM"></option>
+                    <option value="DDM"></option>
+                    <option value="XLK"></option>
+                    <option value="XLF"></option>
+                    <option value="IWM"></option>
+                    <option value="DIA"></option>
                     <option value="SPY"></option>
                     <option value="BTC"></option>
                 </datalist>
@@ -376,6 +412,90 @@
         </div>
     </div>
 
+    <div class="card">
+        <h3 style="margin-top:0; font-size: 15px; border-left: 4px solid var(--primary-color); padding-left: 8px;">별도 기능: 1배/2배/3배 묶음 투자 비교</h3>
+        <div class="input-row">
+            <div class="input-group">
+                <label for="bundle_preset">레버리지 묶음</label>
+                <select id="bundle_preset" onchange="handleBundlePresetChange()">
+                    <option value="QQQ">QQQ / QLD / TQQQ</option>
+                    <option value="SOXX">SOXX / USD / SOXL</option>
+                    <option value="SPY">SPY / SSO / UPRO</option>
+                    <option value="TSLA">TSLA / TSLL / TSLT</option>
+                    <option value="AAPL">AAPL / AAPU / AAPB</option>
+                    <option value="BTC">BTC / BITU / BITX</option>
+                    <option value="NVDA">NVDA / NVDL / NVDU</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="bundle_years">분석 기간 Y년</label>
+                <input type="number" id="bundle_years" value="10" min="1" max="50" step="1">
+            </div>
+            <div class="input-group">
+                <label for="bundle_initial_x">거치식 초기자본 X ($)</label>
+                <input type="number" id="bundle_initial_x" value="10000" min="0" step="100">
+            </div>
+            <div class="input-group">
+                <label for="bundle_monthly_x">적립식 월 투자금 X ($)</label>
+                <input type="number" id="bundle_monthly_x" value="500" min="0" step="10">
+            </div>
+        </div>
+
+        <div class="input-row">
+            <div class="input-group">
+                <label for="bundle_regular_a">리밸런싱 월 정기매수 A ($)</label>
+                <input type="number" id="bundle_regular_a" value="300" min="0" step="10">
+            </div>
+            <div class="input-group">
+                <label for="bundle_reserve_b">리밸런싱 월 현금적립 B ($)</label>
+                <input type="number" id="bundle_reserve_b" value="200" min="0" step="10">
+            </div>
+            <div class="input-group">
+                <label for="bundle_drawdown_c">1차 하락 기준 C (%)</label>
+                <input type="number" id="bundle_drawdown_c" value="10" min="1" max="80" step="1">
+            </div>
+            <div class="input-group">
+                <label for="bundle_end_date">기준 종료일</label>
+                <input type="date" id="bundle_end_date">
+            </div>
+        </div>
+
+        <p id="bundlePresetInfo" style="font-size: 12px; color: var(--text-sub); margin: 0 0 10px 0;">
+            전고점 대비 C%, C+5%, C+10%, C+15%, C+20% 하락 시 남은 현금풀의 15%, 20%, 30%, 40%, 50%를 순차 투입합니다.
+        </p>
+        <button class="main-btn" id="bundleCompareBtn" onclick="runBundleComparison()">묶음 비교 시뮬레이션 실행</button>
+
+        <div id="bundleProgressContainer" class="progress-container">
+            <div id="bundleProgressBar" class="progress-bar"></div>
+            <div id="bundleProgressText" class="progress-text">묶음 비교 준비 중...</div>
+        </div>
+    </div>
+
+    <div id="bundleResultsArea" class="card" style="display: none;">
+        <h2 style="margin-top:0; font-size: 18px;">📊 1배/2배/3배 묶음 투자 비교 결과</h2>
+        <p id="bundleResultInfo" style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;"></p>
+        <div class="table-container">
+            <table class="sweep-table">
+                <thead>
+                    <tr>
+                        <th>종목</th>
+                        <th>배수</th>
+                        <th>방식</th>
+                        <th>총 투입금</th>
+                        <th>최종 자산</th>
+                        <th>보유 현금</th>
+                        <th>보유 수량</th>
+                        <th>수익률</th>
+                        <th>CAGR</th>
+                        <th>MDD</th>
+                        <th>추가매수</th>
+                    </tr>
+                </thead>
+                <tbody id="bundleResultsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
     <div id="sweepResultsArea" class="card" style="display: none;">
         <h2 style="margin-top:0; font-size: 18px;">🏆 단일 기간 스윕 랭킹</h2>
         <p style="font-size: 13px; color: var(--text-sub); margin-bottom: 15px;">💡 행을 클릭하면 해당 조건의 <b>단일 시뮬레이션 상세 결과창이 표출</b>됩니다.</p>
@@ -501,7 +621,7 @@ const csvUrls = {
 };
 
 const leveragedSyntheticMap = {
-    // v12.8: 1배 ETF 일별수익률을 레버리지 배수로 합성한 뒤 실제 ETF 첫 거래일 가격에 맞춰 연결합니다.
+    // v12.9: 1배 ETF/주식/코인 일별수익률을 레버리지 배수로 합성한 뒤 실제 ETF 첫 거래일 가격에 맞춰 연결합니다.
     'TQQQ': { baseTicker: 'QQQ', leverage: 3, expenseRatio: 0.0098, label: 'QQQ 3배 합성' },
     'QLD': { baseTicker: 'QQQ', leverage: 2, expenseRatio: 0.0095, label: 'QQQ 2배 합성' },
     'SOXL': { baseTicker: 'SOXX', leverage: 3, expenseRatio: 0.0075, label: 'SOXX 3배 합성' },
@@ -509,8 +629,82 @@ const leveragedSyntheticMap = {
     'UPRO': { baseTicker: 'SPY', leverage: 3, expenseRatio: 0.0091, label: 'SPY 3배 합성' },
     'SPXL': { baseTicker: 'SPY', leverage: 3, expenseRatio: 0.0084, label: 'SPY 3배 합성' },
     'SSO': { baseTicker: 'SPY', leverage: 2, expenseRatio: 0.0087, label: 'SPY 2배 합성' },
-    'SPUU': { baseTicker: 'SPY', leverage: 2, expenseRatio: 0.0063, label: 'SPY 2배 합성' }
+    'SPUU': { baseTicker: 'SPY', leverage: 2, expenseRatio: 0.0063, label: 'SPY 2배 합성' },
+    'TSLL': { baseTicker: 'TSLA', leverage: 2, expenseRatio: 0.0107, label: 'TSLA 2배 합성' },
+    'TSLT': { baseTicker: 'TSLA', leverage: 2, expenseRatio: 0.0105, label: 'TSLA 2배 합성' },
+    'AAPU': { baseTicker: 'AAPL', leverage: 2, expenseRatio: 0.0107, label: 'AAPL 2배 합성' },
+    'AAPB': { baseTicker: 'AAPL', leverage: 2, expenseRatio: 0.0115, label: 'AAPL 2배 합성' },
+    'BITU': { baseTicker: 'BTC', leverage: 2, expenseRatio: 0.0095, label: 'BTC 2배 합성' },
+    'BITX': { baseTicker: 'BTC', leverage: 2, expenseRatio: 0.0185, label: 'BTC 2배 합성' },
+    'NVDL': { baseTicker: 'NVDA', leverage: 2, expenseRatio: 0.0115, label: 'NVDA 2배 합성' },
+    'NVDU': { baseTicker: 'NVDA', leverage: 2, expenseRatio: 0.0107, label: 'NVDA 2배 합성' },
+    'NVDX': { baseTicker: 'NVDA', leverage: 2, expenseRatio: 0.0105, label: 'NVDA 2배 합성' },
+    'MSTU': { baseTicker: 'MSTR', leverage: 2, expenseRatio: 0.0105, label: 'MSTR 2배 합성' },
+    'MSTX': { baseTicker: 'MSTR', leverage: 2, expenseRatio: 0.0129, label: 'MSTR 2배 합성' },
+    'AMZU': { baseTicker: 'AMZN', leverage: 2, expenseRatio: 0.0107, label: 'AMZN 2배 합성' },
+    'METU': { baseTicker: 'META', leverage: 2, expenseRatio: 0.0107, label: 'META 2배 합성' },
+    'MSFU': { baseTicker: 'MSFT', leverage: 2, expenseRatio: 0.0107, label: 'MSFT 2배 합성' },
+    'GGLL': { baseTicker: 'GOOGL', leverage: 2, expenseRatio: 0.0107, label: 'GOOGL 2배 합성' },
+    'PTIR': { baseTicker: 'PLTR', leverage: 2, expenseRatio: 0.0105, label: 'PLTR 2배 합성' },
+    'CONL': { baseTicker: 'COIN', leverage: 2, expenseRatio: 0.0115, label: 'COIN 2배 합성' },
+    'NFXL': { baseTicker: 'NFLX', leverage: 2, expenseRatio: 0.0115, label: 'NFLX 2배 합성' },
+    'LABU': { baseTicker: 'XBI', leverage: 3, expenseRatio: 0.0097, label: 'XBI 3배 합성' },
+    'TECL': { baseTicker: 'XLK', leverage: 3, expenseRatio: 0.0094, label: 'XLK 3배 합성' },
+    'FAS': { baseTicker: 'XLF', leverage: 3, expenseRatio: 0.0094, label: 'XLF 3배 합성' },
+    'TNA': { baseTicker: 'IWM', leverage: 3, expenseRatio: 0.0094, label: 'IWM 3배 합성' },
+    'UDOW': { baseTicker: 'DIA', leverage: 3, expenseRatio: 0.0095, label: 'DIA 3배 합성' },
+    'ROM': { baseTicker: 'XLK', leverage: 2, expenseRatio: 0.0095, label: 'XLK 2배 합성' },
+    'UWM': { baseTicker: 'IWM', leverage: 2, expenseRatio: 0.0095, label: 'IWM 2배 합성' },
+    'DDM': { baseTicker: 'DIA', leverage: 2, expenseRatio: 0.0095, label: 'DIA 2배 합성' }
 };
+
+const leverageBundlePresets = {
+    'QQQ': { label: 'QQQ / QLD / TQQQ', referenceTicker: 'QQQ', members: [{ ticker: 'QQQ', leverage: 1 }, { ticker: 'QLD', leverage: 2 }, { ticker: 'TQQQ', leverage: 3 }] },
+    'SOXX': { label: 'SOXX / USD / SOXL', referenceTicker: 'SOXX', members: [{ ticker: 'SOXX', leverage: 1 }, { ticker: 'USD', leverage: 2 }, { ticker: 'SOXL', leverage: 3 }] },
+    'SPY': { label: 'SPY / SSO / UPRO', referenceTicker: 'SPY', members: [{ ticker: 'SPY', leverage: 1 }, { ticker: 'SSO', leverage: 2 }, { ticker: 'UPRO', leverage: 3 }] },
+    'TSLA': { label: 'TSLA / TSLL / TSLT', referenceTicker: 'TSLA', members: [{ ticker: 'TSLA', leverage: 1 }, { ticker: 'TSLL', leverage: 2 }, { ticker: 'TSLT', leverage: 2 }] },
+    'AAPL': { label: 'AAPL / AAPU / AAPB', referenceTicker: 'AAPL', members: [{ ticker: 'AAPL', leverage: 1 }, { ticker: 'AAPU', leverage: 2 }, { ticker: 'AAPB', leverage: 2 }] },
+    'BTC': { label: 'BTC / BITU / BITX', referenceTicker: 'BTC', members: [{ ticker: 'BTC', leverage: 1 }, { ticker: 'BITU', leverage: 2 }, { ticker: 'BITX', leverage: 2 }] },
+    'NVDA': { label: 'NVDA / NVDL / NVDU', referenceTicker: 'NVDA', members: [{ ticker: 'NVDA', leverage: 1 }, { ticker: 'NVDL', leverage: 2 }, { ticker: 'NVDU', leverage: 2 }] }
+};
+
+const leveragedAutoBaseHints = [
+    { baseTicker: 'TSLA', hints: ['TSLA', 'TESLA'] },
+    { baseTicker: 'AAPL', hints: ['AAPL', 'APPLE'] },
+    { baseTicker: 'NVDA', hints: ['NVDA', 'NVIDIA'] },
+    { baseTicker: 'MSFT', hints: ['MSFT', 'MICROSOFT'] },
+    { baseTicker: 'GOOGL', hints: ['GOOGL', 'GOOG', 'GOOGLE', 'ALPHABET'] },
+    { baseTicker: 'META', hints: ['META'] },
+    { baseTicker: 'AMZN', hints: ['AMZN', 'AMAZON'] },
+    { baseTicker: 'MSTR', hints: ['MSTR', 'MICROSTRATEGY'] },
+    { baseTicker: 'PLTR', hints: ['PLTR', 'PALANTIR'] },
+    { baseTicker: 'COIN', hints: ['COIN', 'COINBASE'] },
+    { baseTicker: 'NFLX', hints: ['NFLX', 'NETFLIX'] },
+    { baseTicker: 'BTC', hints: ['BTC', 'BITCOIN'] }
+];
+
+function inferLeveragedConfigFromTickerInfo(ticker) {
+    const symbol = String(ticker || '').trim().toUpperCase();
+    const info = tickerInfoCache[symbol];
+    if (!info) return null;
+
+    const nameText = `${info.longname || ''} ${info.shortname || ''}`.toUpperCase();
+    const leverageMatch = nameText.match(/(?:\+|LONG|BULL)?\s*([23])\s*X|([23])X\s*(?:LONG|BULL)/i);
+    const leverage = leverageMatch ? Number(leverageMatch[1] || leverageMatch[2]) : null;
+    if (![2, 3].includes(leverage)) return null;
+
+    const baseMatch = leveragedAutoBaseHints.find(item => item.hints.some(hint => nameText.includes(hint)));
+    const baseTicker = baseMatch ? baseMatch.baseTicker : '';
+    if (!baseTicker || baseTicker === symbol) return null;
+
+    return {
+        targetTicker: symbol,
+        baseTicker,
+        leverage,
+        expenseRatio: 0.0105,
+        label: `${baseTicker} ${leverage}배 자동 추정 합성`
+    };
+}
 
 function getTickerValue() {
     return String(document.getElementById('ticker').value || '').trim().toUpperCase();
@@ -620,6 +814,7 @@ function buildTickerSearchSources(ticker) {
 }
 
 let tickerLookupTimer = null;
+let tickerInfoCache = {};
 
 function setTickerInfo(message, state = '') {
     const info = document.getElementById('tickerInfo');
@@ -655,6 +850,11 @@ async function lookupTickerInfo() {
                 const fullName = exact.longname || exact.shortname || exact.symbol;
                 const exchange = exact.exchDisp || exact.exchange || '거래소 정보 없음';
                 const type = exact.typeDisp || exact.quoteType || '유형 정보 없음';
+                tickerInfoCache[ticker] = exact;
+                const syntheticLeverageOption = document.getElementById('synthetic_leverage_option');
+                if (syntheticLeverageOption) {
+                    syntheticLeverageOption.style.display = getLeveragedSyntheticConfig(ticker) ? 'inline-flex' : 'none';
+                }
                 setTickerInfo(`${exact.symbol}: ${fullName} / ${exchange} / ${type}`, 'success');
                 return exact;
             }
@@ -703,7 +903,7 @@ function handleTickerChange() {
         btcUnitGroup.style.display = 'none';
     }
     if (syntheticLeverageOption) {
-        syntheticLeverageOption.style.display = leveragedSyntheticMap[ticker] ? 'inline-flex' : 'none';
+        syntheticLeverageOption.style.display = getLeveragedSyntheticConfig(ticker) ? 'inline-flex' : 'none';
     }
     scheduleTickerLookup();
 }
@@ -737,7 +937,9 @@ function updateChartTheme(isDark) {
 window.onload = function() {
     document.getElementById('start_date').value = "2024-05-09";
     document.getElementById('end_date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('bundle_end_date').value = document.getElementById('end_date').value;
     handleTickerChange();
+    handleBundlePresetChange();
     lookupTickerInfo();
     if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
         toggleTheme();
@@ -944,7 +1146,15 @@ function parseYahooChartText(jsonText, endDate) {
 }
 
 function getLeveragedSyntheticConfig(ticker) {
-    return leveragedSyntheticMap[String(ticker || '').trim().toUpperCase()] || null;
+    const symbol = String(ticker || '').trim().toUpperCase();
+    const config = leveragedSyntheticMap[symbol] || inferLeveragedConfigFromTickerInfo(symbol);
+    if (!config) return null;
+    return {
+        ...config,
+        targetTicker: symbol,
+        expenseRatio: Number.isFinite(config.expenseRatio) ? config.expenseRatio : 0.0105,
+        label: config.label || `${config.baseTicker} ${config.leverage}배 합성`
+    };
 }
 
 function shouldUseSyntheticLeverage(ticker) {
@@ -1397,6 +1607,253 @@ function openDetailModal(slicedCandles, calc, N, SIGMA, ticker) {
 }
 
 function closeModal() { document.getElementById('detailModal').style.display = 'none'; if (chartInstance) { chartInstance.remove(); chartInstance = null; } }
+
+function formatBundleMoney(value) {
+    return "$" + (Number(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatBundlePct(value) {
+    const num = Number(value) || 0;
+    return (num > 0 ? "+" : "") + num.toFixed(2) + "%";
+}
+
+function parseBundleNumber(id, fallback = 0) {
+    const value = parseFloat(document.getElementById(id).value);
+    return Number.isFinite(value) ? value : fallback;
+}
+
+function getBundleStartDate(endDateStr, years) {
+    const dt = new Date(endDateStr + 'T00:00:00');
+    dt.setFullYear(dt.getFullYear() - years);
+    dt.setDate(dt.getDate() + 1);
+    return dt.toISOString().split('T')[0];
+}
+
+function filterBundleData(rawData, startDate, endDate) {
+    const startMs = new Date(startDate + 'T00:00:00').getTime();
+    const endMs = new Date(endDate + 'T23:59:59').getTime();
+    return (rawData || []).filter(item => {
+        const ms = new Date(item.time + 'T00:00:00').getTime();
+        return ms >= startMs && ms <= endMs && Number.isFinite(item.close) && item.close > 0;
+    });
+}
+
+function calcBundleMdd(data, cashSeries, shareSeries) {
+    let maxAssets = 0, mdd = 0;
+    data.forEach((row, index) => {
+        const assets = cashSeries[index] + shareSeries[index] * row.close;
+        if (assets > maxAssets) maxAssets = assets;
+        if (maxAssets > 0) mdd = Math.max(mdd, (maxAssets - assets) / maxAssets);
+    });
+    return mdd * 100;
+}
+
+function makeBundleResult(strategyName, ticker, leverage, data, totalInvested, finalCash, finalShares, extraBuys, startDate, endDate, cashSeries, shareSeries) {
+    if (!data || data.length === 0) return null;
+    const finalPrice = data[data.length - 1].close;
+    const finalAssets = finalCash + finalShares * finalPrice;
+    const yieldPer = totalInvested > 0 ? ((finalAssets - totalInvested) / totalInvested) * 100 : 0;
+    const years = Math.max(0.0001, (new Date(endDate + 'T00:00:00').getTime() - new Date(startDate + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+    const cagr = totalInvested > 0 && finalAssets > 0 ? (Math.pow(finalAssets / totalInvested, 1 / years) - 1) * 100 : 0;
+    const mdd = calcBundleMdd(data, cashSeries, shareSeries);
+    return { strategyName, ticker, leverage, totalInvested, cash: finalCash, shares: finalShares, finalAssets, yieldPer, cagr, mdd, extraBuys };
+}
+
+function simulateBundleLumpSum(ticker, leverage, data, initialAmount, startDate, endDate) {
+    if (!data || data.length === 0 || initialAmount <= 0) return null;
+    const shares = initialAmount / data[0].close;
+    const cashSeries = data.map(() => 0);
+    const shareSeries = data.map(() => shares);
+    return makeBundleResult('거치식', ticker, leverage, data, initialAmount, 0, shares, 0, startDate, endDate, cashSeries, shareSeries);
+}
+
+function simulateBundleMonthly(ticker, leverage, data, monthlyAmount, startDate, endDate) {
+    if (!data || data.length === 0 || monthlyAmount <= 0) return null;
+    let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
+    const cashSeries = [], shareSeries = [];
+    data.forEach(row => {
+        const monthKey = row.time.slice(0, 7);
+        if (monthKey !== currentMonth) {
+            currentMonth = monthKey;
+            totalInvested += monthlyAmount;
+            shares += monthlyAmount / row.close;
+        }
+        cashSeries.push(cash);
+        shareSeries.push(shares);
+    });
+    return makeBundleResult('적립식', ticker, leverage, data, totalInvested, cash, shares, 0, startDate, endDate, cashSeries, shareSeries);
+}
+
+function simulateBundleReserveRebalance(ticker, leverage, data, referenceData, monthlyBuy, monthlyReserve, firstDrawdownPct, startDate, endDate) {
+    if (!data || data.length === 0 || (monthlyBuy <= 0 && monthlyReserve <= 0)) return null;
+    const triggerPercents = [15, 20, 30, 40, 50];
+    const refByDate = {};
+    referenceData.forEach(row => { refByDate[row.time] = row.close; });
+
+    let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
+    let referenceHigh = 0, firedStage = 0, extraBuys = 0;
+    const cashSeries = [], shareSeries = [];
+
+    data.forEach(row => {
+        const monthKey = row.time.slice(0, 7);
+        if (monthKey !== currentMonth) {
+            currentMonth = monthKey;
+            if (monthlyBuy > 0) {
+                totalInvested += monthlyBuy;
+                shares += monthlyBuy / row.close;
+            }
+            if (monthlyReserve > 0) {
+                totalInvested += monthlyReserve;
+                cash += monthlyReserve;
+            }
+        }
+
+        const refClose = refByDate[row.time];
+        if (Number.isFinite(refClose) && refClose > 0) {
+            if (refClose > referenceHigh) {
+                referenceHigh = refClose;
+                firedStage = 0;
+            }
+            const drawdownPct = referenceHigh > 0 ? ((referenceHigh - refClose) / referenceHigh) * 100 : 0;
+            for (let stage = firedStage; stage < 5; stage++) {
+                const threshold = firstDrawdownPct + stage * 5;
+                if (drawdownPct >= threshold && cash > 0) {
+                    const investAmount = cash * (triggerPercents[stage] / 100);
+                    cash -= investAmount;
+                    shares += investAmount / row.close;
+                    extraBuys++;
+                    firedStage = stage + 1;
+                }
+            }
+        }
+
+        cashSeries.push(cash);
+        shareSeries.push(shares);
+    });
+
+    return makeBundleResult('적립식 리밸런싱', ticker, leverage, data, totalInvested, cash, shares, extraBuys, startDate, endDate, cashSeries, shareSeries);
+}
+
+async function loadBundleData(ticker, endDate, options) {
+    const savedStart = document.getElementById('start_date').value;
+    const savedEnd = document.getElementById('end_date').value;
+    const listingStart = document.getElementById('use_listing_start');
+    const syntheticLeverage = document.getElementById('use_synthetic_leverage');
+    const savedListing = listingStart ? listingStart.checked : false;
+    const savedSynthetic = syntheticLeverage ? syntheticLeverage.checked : true;
+    if (listingStart) listingStart.checked = false;
+    if (syntheticLeverage) syntheticLeverage.checked = true;
+    try {
+        return await fetchAndParseData(ticker, endDate, options);
+    } finally {
+        document.getElementById('start_date').value = savedStart;
+        document.getElementById('end_date').value = savedEnd;
+        if (listingStart) listingStart.checked = savedListing;
+        if (syntheticLeverage) syntheticLeverage.checked = savedSynthetic;
+    }
+}
+
+function handleBundlePresetChange() {
+    const preset = leverageBundlePresets[document.getElementById('bundle_preset').value];
+    const info = document.getElementById('bundlePresetInfo');
+    if (!preset || !info) return;
+    info.innerText = `${preset.label}: ${preset.referenceTicker} 전고점 기준으로 C%, C+5%, C+10%, C+15%, C+20% 하락 시 남은 현금풀의 15%, 20%, 30%, 40%, 50%를 순차 투입합니다.`;
+}
+
+async function runBundleComparison() {
+    const btn = document.getElementById('bundleCompareBtn');
+    const progContainer = document.getElementById('bundleProgressContainer');
+    const progBar = document.getElementById('bundleProgressBar');
+    const progText = document.getElementById('bundleProgressText');
+    const preset = leverageBundlePresets[document.getElementById('bundle_preset').value];
+    if (!preset) { showMessageBox('레버리지 묶음을 선택해 주세요.'); return; }
+
+    const years = parseBundleNumber('bundle_years', 10);
+    const initialX = parseBundleNumber('bundle_initial_x', 10000);
+    const monthlyX = parseBundleNumber('bundle_monthly_x', 500);
+    const monthlyA = parseBundleNumber('bundle_regular_a', 300);
+    const monthlyB = parseBundleNumber('bundle_reserve_b', 200);
+    const drawdownC = parseBundleNumber('bundle_drawdown_c', 10);
+    const endDate = document.getElementById('bundle_end_date').value || document.getElementById('end_date').value || new Date().toISOString().split('T')[0];
+    const requestedStart = getBundleStartDate(endDate, years);
+
+    btn.disabled = true;
+    btn.innerText = '묶음 데이터 로딩 중...';
+    progContainer.style.display = 'block';
+    progBar.style.width = '0%';
+    progText.innerText = `${preset.label} 데이터 로딩 중...`;
+    document.body.style.cursor = 'wait';
+
+    try {
+        const dataByTicker = {};
+        for (let i = 0; i < preset.members.length; i++) {
+            const member = preset.members[i];
+            progBar.style.width = Math.round((i / preset.members.length) * 50) + '%';
+            progText.innerText = `${member.ticker} 일봉 데이터 로딩 중...`;
+            const raw = await loadBundleData(member.ticker, endDate, { onRetry: ({ attempt, maxRetries, source }) => { progText.innerText = `${member.ticker} ${source || '일봉 데이터'} 재시도 중... (${attempt}/${maxRetries})`; } });
+            if (!raw || raw.length === 0) throw new Error(`${member.ticker} 데이터를 불러오지 못했습니다.`);
+            dataByTicker[member.ticker] = raw;
+        }
+
+        const firstDates = preset.members.map(member => filterBundleData(dataByTicker[member.ticker], requestedStart, endDate)[0]).filter(Boolean).map(row => row.time);
+        if (firstDates.length !== preset.members.length) throw new Error('선택 기간에 모든 묶음 종목의 공통 데이터가 없습니다.');
+        const commonStart = firstDates.sort().slice(-1)[0];
+        const referenceData = filterBundleData(dataByTicker[preset.referenceTicker], commonStart, endDate);
+        if (referenceData.length === 0) throw new Error(`${preset.referenceTicker} 기준 전고점 데이터를 만들지 못했습니다.`);
+
+        const results = [];
+        preset.members.forEach((member, index) => {
+            progBar.style.width = Math.round(50 + ((index + 1) / preset.members.length) * 50) + '%';
+            const data = filterBundleData(dataByTicker[member.ticker], commonStart, endDate);
+            [
+                simulateBundleLumpSum(member.ticker, member.leverage, data, initialX, commonStart, endDate),
+                simulateBundleMonthly(member.ticker, member.leverage, data, monthlyX, commonStart, endDate),
+                simulateBundleReserveRebalance(member.ticker, member.leverage, data, referenceData, monthlyA, monthlyB, drawdownC, commonStart, endDate)
+            ].forEach(item => { if (item) results.push(item); });
+        });
+
+        renderBundleResults(results, preset, commonStart, endDate, { initialX, monthlyX, monthlyA, monthlyB, drawdownC });
+        progBar.style.width = '100%';
+        progText.innerText = '묶음 비교 완료';
+    } catch (e) {
+        showMessageBox(e && e.message ? e.message : String(e));
+    } finally {
+        btn.disabled = false;
+        btn.innerText = '묶음 비교 시뮬레이션 실행';
+        document.body.style.cursor = 'default';
+    }
+}
+
+function renderBundleResults(results, preset, startDate, endDate, params) {
+    const tbody = document.getElementById('bundleResultsBody');
+    tbody.innerHTML = '';
+    const strategyOrder = { '거치식': 1, '적립식': 2, '적립식 리밸런싱': 3 };
+    results.sort((a, b) => a.leverage - b.leverage || strategyOrder[a.strategyName] - strategyOrder[b.strategyName] || a.ticker.localeCompare(b.ticker));
+
+    results.forEach(res => {
+        const row = document.createElement('tr');
+        const yieldColor = res.yieldPer >= 0 ? '#ff4d4d' : '#3498db';
+        const cagrColor = res.cagr >= 0 ? '#ff4d4d' : '#3498db';
+        const shareText = res.ticker === 'BTC' || res.shares % 1 !== 0 ? res.shares.toFixed(6) : Math.floor(res.shares).toLocaleString();
+        row.innerHTML = `
+            <td style="font-weight:bold;">${res.ticker}</td>
+            <td>${res.leverage}배</td>
+            <td>${res.strategyName}</td>
+            <td>${formatBundleMoney(res.totalInvested)}</td>
+            <td style="font-weight:bold; color:var(--primary-color);">${formatBundleMoney(res.finalAssets)}</td>
+            <td>${formatBundleMoney(res.cash)}</td>
+            <td>${shareText}</td>
+            <td style="font-weight:bold; color:${yieldColor};">${formatBundlePct(res.yieldPer)}</td>
+            <td style="font-weight:bold; color:${cagrColor};">${formatBundlePct(res.cagr)}</td>
+            <td style="font-weight:bold; color:#e67e22;">-${res.mdd.toFixed(2)}%</td>
+            <td>${res.extraBuys}회</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById('bundleResultInfo').innerText = `${preset.label} / 실제 계산 구간: ${startDate} ~ ${endDate} / 거치식 X=${formatBundleMoney(params.initialX)}, 적립식 X=${formatBundleMoney(params.monthlyX)}, 리밸런싱 A=${formatBundleMoney(params.monthlyA)} + B=${formatBundleMoney(params.monthlyB)}, 1차 하락 기준 C=${params.drawdownC}%`;
+    document.getElementById('bundleResultsArea').style.display = 'block';
+}
 
 // 🎯 [단일 백테스트]
 async function runSingleBacktest() {
