@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>퀀트 백테스터 Pro v14.0</title>
+    <title>퀀트 백테스터 Pro v14.1</title>
+    <!-- v14.1 CODEX: 묶음비교 표 모바일 가로 스크롤, 투입금 붉은색 막대, EMA 1주/최소 $20 매매 로직을 추가했습니다. -->
     <!-- v14.0 CODEX: 환율을 결과표 상단에서 한 번만 표시/수정하게 하고 발동 횟수를 1~5차 열로 분리했습니다. -->
     <!-- v13.9 CODEX: 묶음 비교 기본 입력값을 조정하고 EMA/시그마 전략을 적립식 월투자금 기준으로 계산하도록 변경했습니다. -->
     <!-- v13.8 CODEX: 원화 억원 보조 표기에 현재 USD/KRW 환율을 자동 반영하도록 추가했습니다. -->
@@ -116,9 +117,9 @@
         .sweep-table th:nth-child(3), .sweep-table td:nth-child(3) { position: sticky; left: 72px; width: 42px; min-width: 42px; padding: 12px 2px; font-size: 11px; letter-spacing: -0.5px; box-sizing: border-box; z-index: 11; border-right: 2px solid var(--border-color); box-shadow: 2px 0 5px var(--shadow-sticky); }
         
         .sweep-table th:nth-child(1), .sweep-table th:nth-child(2), .sweep-table th:nth-child(3) { z-index: 12; }
-        .bundle-table-container { max-height: none; overflow: visible; border: none; }
-        .bundle-results-table { min-width: 0; table-layout: fixed; font-size: 12px; }
-        .bundle-results-table th, .bundle-results-table td { position: static !important; left: auto !important; width: auto !important; min-width: 0 !important; padding: 9px 4px !important; box-shadow: none !important; white-space: normal; word-break: keep-all; }
+        .bundle-table-container { max-height: none; overflow-x: auto; overflow-y: visible; border: none; -webkit-overflow-scrolling: touch; }
+        .bundle-results-table { min-width: 1320px; table-layout: fixed; font-size: 12px; }
+        .bundle-results-table th, .bundle-results-table td { position: static !important; left: auto !important; width: auto !important; min-width: 72px !important; padding: 9px 6px !important; box-shadow: none !important; white-space: normal; word-break: keep-all; }
         .bundle-results-table th { top: auto; }
         .bundle-results-table .bundle-group-row td { cursor: default; text-align: left; }
         .bundle-summary { display: flex; flex-direction: column; gap: 14px; margin: 12px 0 18px 0; }
@@ -128,7 +129,7 @@
         .bundle-bar-label { font-weight: bold; color: var(--text-main); }
         .bundle-bar-track { height: 28px; background: var(--btn-bg); border-radius: 5px; overflow: hidden; border: 1px solid var(--border-color); position: relative; }
         .bundle-bar-final { position: absolute; left: 0; top: 0; height: 100%; min-width: 4px; display: flex; align-items: center; padding-left: 6px; color: white; font-weight: bold; white-space: nowrap; box-sizing: border-box; z-index: 1; }
-        .bundle-bar-invested { position: absolute; left: 0; bottom: 0; height: 38%; min-width: 3px; background: rgba(255, 255, 255, 0.72); border-right: 2px solid rgba(0, 0, 0, 0.35); z-index: 2; box-sizing: border-box; }
+        .bundle-bar-invested { position: absolute; left: 0; bottom: 0; height: 42%; min-width: 3px; background: rgba(229, 57, 53, 0.86); border-right: 2px solid rgba(183, 28, 28, 0.95); z-index: 2; box-sizing: border-box; }
         .bundle-bar-text { position: absolute; left: 7px; right: 6px; top: 50%; transform: translateY(-50%); color: white; font-weight: bold; z-index: 3; text-shadow: 0 1px 2px rgba(0,0,0,0.45); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .bundle-bar-meta { color: var(--text-main); line-height: 1.25; font-weight: bold; }
         .krw-sub { display: block; margin-top: 2px; font-size: 0.67em; color: var(--text-sub); font-weight: normal; line-height: 1.15; }
@@ -160,7 +161,7 @@
         [data-theme="dark"] .chart-legend { background: rgba(30, 30, 30, 0.85); color: #e0e0e0; border-color: #444444; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
         .classic-mode-section, .bundle-mode-section { display: none; }
 
-        @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } .bundle-bar-row { grid-template-columns: 72px minmax(130px, 1fr) 54px; } .bundle-bar-text { font-size: 11px; } }
+        @media (max-width: 600px) { .theme-toggle { position: relative; display: block; width: 100%; margin-top: 10px; } .bundle-bar-row { grid-template-columns: 72px minmax(130px, 1fr) 54px; } .bundle-bar-text { font-size: 11px; } .bundle-table-container { border: 1px solid var(--border-color); border-radius: 8px; } }
     </style>
 </head>
 <body>
@@ -174,7 +175,7 @@
 
 <div class="container">
     <div class="header">
-        <h1>📈 퀀트 백테스터 <span class="version-badge">v14.0</span></h1>
+        <h1>📈 퀀트 백테스터 <span class="version-badge">v14.1</span></h1>
         <button id="themeToggleBtn" class="theme-toggle" onclick="toggleTheme()">🌙 다크 모드</button>
     </div>
 
@@ -701,8 +702,8 @@ function showBundleHelp(topic) {
         drawdownC: '하락기준 리밸런싱의 1차 발동 기준입니다. 예를 들어 C=10이면 1배 기준 종목이 전고점 대비 -10%, -15%, -20%, -25%, -30% 하락할 때 순차 발동합니다.',
         endDate: '시뮬레이션의 종료일입니다. 비워두면 기존 백테스터의 종료일 또는 오늘 날짜를 사용합니다.',
         emaN: 'EMA/시그마 리밸런싱에서 사용하는 이동평균 기간입니다. N일 EMA와 표준편차를 기준으로 매수/매도 구간을 계산합니다.',
-        buySigma: 'EMA/시그마 전략에서 가격이 EMA보다 이 시그마 배수만큼 아래로 내려가면 보유 현금의 50%로 재매수합니다. 현금은 별도 적립하지 않고 이전 매도분에서 생긴 금액만 사용합니다.',
-        sellSigma: 'EMA/시그마 전략에서 가격이 EMA보다 이 시그마 배수만큼 위로 올라가면 보유 수량의 25%를 매도해 현금화합니다.',
+        buySigma: 'EMA/시그마 전략에서 가격이 EMA보다 이 시그마 배수만큼 아래로 내려가면 신호가 켜진 거래일마다 1주를 매수합니다. 1주 가격이 20달러보다 낮으면 최소 20달러어치를 매수하며, 매수 재원은 이전 매도분에서 생긴 현금만 사용합니다.',
+        sellSigma: 'EMA/시그마 전략에서 가격이 EMA보다 이 시그마 배수만큼 위로 올라가면 신호가 켜진 거래일마다 1주를 매도합니다. 1주 가격이 20달러보다 낮으면 최소 20달러어치를 매도하되, 실제 보유 수량을 초과하지 않습니다.',
         result: '결과표는 전략별로 1배/2배/3배 상품을 묶어 보여줍니다. 행을 클릭하면 가격 차트와 포트폴리오 가치선을 볼 수 있습니다.'
     };
     showMessageBox(help[topic] || '도움말이 준비되지 않았습니다.');
@@ -2067,7 +2068,7 @@ function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, mon
     const emaValues = calculateEMA(closePrices, emaN);
     const sdValues = closePrices.map((_, index) => calculateStdDev(closePrices, index, emaN));
     let totalInvested = 0, cash = 0, shares = 0, currentMonth = '';
-    let actionCount = 0, buyArmed = true, sellArmed = true;
+    let actionCount = 0;
     const cashSeries = [], shareSeries = [], tradeEvents = [];
 
     data.forEach((row, index) => {
@@ -2090,34 +2091,32 @@ function simulateBundleEmaSigmaRebalance(ticker, leverage, data, monthlyBuy, mon
             const buyLine = ema - buySigma * sd;
             const sellLine = ema + sellSigma * sd;
 
-            if (row.close > ema) buyArmed = true;
-            if (row.close < ema) sellArmed = true;
+            // v14.1: EMA 신호가 유지되는 동안 매 거래일 1주, 단 1주가 $20 미만이면 최소 $20 명목금액으로 매매합니다.
+            const tradeNotional = Math.max(row.close, 20);
 
-            if (buyArmed && cash > 0 && row.close <= buyLine) {
-                const investAmount = cash * 0.5;
+            if (cash > 0 && row.close <= buyLine) {
+                const investAmount = Math.min(cash, tradeNotional);
                 cash -= investAmount;
                 shares += investAmount / row.close;
                 actionCount++;
-                buyArmed = false;
                 tradeEvents.push({
                     date: row.time,
                     stageLabel: 'EMA 매수',
                     actionLabel: '매수',
                     amount: investAmount,
-                    detail: `EMA ${emaN}일 -${buySigma}σ 이하`
+                    detail: `EMA ${emaN}일 -${buySigma}σ 이하, 1주/최소 $20`
                 });
-            } else if (sellArmed && shares > 0 && row.close >= sellLine) {
-                const sellShares = shares * 0.25;
+            } else if (shares > 0 && row.close >= sellLine) {
+                const sellShares = Math.min(shares, tradeNotional / row.close);
                 shares -= sellShares;
                 cash += sellShares * row.close;
                 actionCount++;
-                sellArmed = false;
                 tradeEvents.push({
                     date: row.time,
                     stageLabel: 'EMA 매도',
                     actionLabel: '매도',
                     amount: sellShares * row.close,
-                    detail: `EMA ${emaN}일 +${sellSigma}σ 이상`
+                    detail: `EMA ${emaN}일 +${sellSigma}σ 이상, 1주/최소 $20`
                 });
             }
         }
